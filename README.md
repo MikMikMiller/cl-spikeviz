@@ -1,5 +1,7 @@
 # cl-spikeviz
 
+![status](https://img.shields.io/badge/status-live_dashboard-blue) ![type](https://img.shields.io/badge/type-browsers_visualizer-6a5cff) ![license](https://img.shields.io/badge/license-MIT-brightgreen)
+
 **cl-spikeviz** is a lightweight, browser-based visualizer for Cortical Labs `cl-sdk` stream data.
 
 It is designed as a no-framework, no-build-step static web application that can run from any simple file server. The project includes a stable 2D dashboard as the production-safe baseline and an experimental Three.js 3D MEA track.
