@@ -1,121 +1,116 @@
 # cl-spikeviz
 
-`cl-spikeviz` — автономный браузерный визуализатор потоков нейронной активности `cl-sdk`.
+**cl-spikeviz** is a standalone browser visualizer for Cortical Labs `cl-sdk` Neural data streams.
 
-Ниже есть два режима чтения: сначала краткая версия для быстрого понимания проекта, затем техническая для разработки и поддержки.
+The project is intentionally minimal from an infrastructure perspective:
+
+- static HTML/CSS/JavaScript (ES modules)
+- no framework
+- no build pipeline
+- no runtime CDN dependency (Three.js is vendored)
+- local/static deployment ready
+
+It supports both live mode from `cl-sdk` WebSocket endpoints and an internal demo mode.
 
 ---
 
-## 1) Быстрый обзор (для заказчика/пользователя)
+## Project purpose
 
-`cl-spikeviz` предназначен для мониторинга MEA данных в реальном времени в лабораторном стиле: стабильный 2D дашборд + дополнительный 3D-трек.
+The primary goal is to provide a practical lab-style instrument-style dashboard for MEA activity:
 
-### Что делает проект
+- fast understanding of channel activity
+- reliable channel-level inspection
+- waveform and heatmap context in one UI
+- optional 3D spatial view without breaking the existing 2D experience
 
-- Подключается к `cl-sdk` WebSocket стримам.
-- В реальном времени показывает:
-  - растр спайков и стимуляций;
-  - тепловую карту активности MEA;
-  - волновые формы по выбранному каналу.
-- Поддерживает демонстрационный режим без внешнего сервера.
-- Имеет 3D-представление массива из 64 электродов (8×8), синхронизированное с 2D режимом.
+The 2D dashboard remains the default and stable baseline.
 
-### Как запустить за 2 минуты
+---
+
+## Core capabilities
+
+### Live and synthetic data sources
+
+- **Live mode**: streams from `cl-sdk` simulator WebSockets
+- **Demo mode**: browser-generated synthetic stream for offline demonstration
+
+### 2D visualization stack
+
+- Raster view of spike/stim activity
+- MEA activity heatmap
+- Waveform viewer for selected channel
+
+### 3D visualization stack (experimental)
+
+- Optional 3D MEA scene with 64 electrodes in an 8×8 grid
+- Real-time activity-driven visual changes:
+  - pillar height
+  - intensity and glow
+  - spike/stim pulse cues
+- Selected channel highlight
+- Shared interaction and selection state with 2D views
+
+### Dashboard controls and operations
+
+- host, port, window, channel, theme
+- pause/resume and reset
+- auto-select active channel
+- compact mode (`?compact=1`) for small containers
+- copy debug / copy iframe
+- export CSV and debug bundle
+
+---
+
+## Folder structure
+
+`cl-spikeviz` is fully self-contained under this directory:
+
+- `index.html` — app shell, controls, and view containers
+- `css/style.css` — layout and visual styling
+- `js/main.mjs` — app orchestration and view mode switching
+- `js/state.mjs` — shared application state
+- `js/ws.mjs` — WebSocket client handling and reconnect behavior
+- `js/protocol.mjs` — binary parser for `live_streaming`
+- `js/raster.mjs` — raster renderer
+- `js/heatmap.mjs` — heatmap renderer
+- `js/waveforms.mjs` — selected-channel waveform rendering
+- `js/three-view.mjs` — optional 3D renderer using Three.js
+- `js/demo.mjs` — deterministic demo data generator
+- `js/canvas.mjs` — canvas helper routines
+- `tools/run_simulator.py` — local simulator launcher and diagnostics
+- `tools/capture_protocol.py` — protocol capture utility
+- `test/` — parser and browser smoke tests
+- `vendor/three.module.js` — local Three.js module
+
+---
+
+## Quickstart (2-minute path)
 
 ```bash
 cd cl-spikeviz
 python3 -m http.server 8080
 ```
 
-Открыть:
+Open in browser:
 
-- DEMO: `http://127.0.0.1:8080/?demo=1`
-- 3D: `http://127.0.0.1:8080/?demo=1&view=3d`
-- SPLIT: `http://127.0.0.1:8080/?demo=1&view=split&compact=1`
-- LIVE: `http://127.0.0.1:8080/?host=127.0.0.1&port=1025&window=5`
+- Demo dashboard: `http://127.0.0.1:8080/?demo=1`
+- Demo 3D: `http://127.0.0.1:8080/?demo=1&view=3d`
+- Demo split: `http://127.0.0.1:8080/?demo=1&view=split&compact=1`
 
-### Режимы интерфейса
+For live mode, assuming simulator is running on port 1025:
 
-- `2D` — стандартный дашборд.
-- `3D` — только трёхмерный MEA трек.
-- `split` — 2D + 3D одновременно.
+- `http://127.0.0.1:8080/?host=127.0.0.1&port=1025&window=5`
 
-### Что можно делать через UI
+WebSocket endpoints consumed by the app:
 
-- выбирать канал,
-- включать автопоиск активного канала,
-- приостанавливать поток,
-- сбрасывать буферы,
-- копировать debug-инфо,
-- экспортировать CSV и debug bundle,
-- копировать iframe-сниппет.
-
-### Для кого это полезно
-
-- демонстрации и проверка pipeline визуализации,
-- быстрый лабораторный мониторинг,
-- интеграция через iframe,
-- разработка и валидация новых идей по 3D отображению данных.
+- `ws://127.0.0.1:1025/_/ws/overview`
+- `ws://127.0.0.1:1025/_/ws/live_streaming`
 
 ---
 
-## 2) Техническая документация
+## Live setup (`cl-sdk`)
 
-### Стек и архитектурные принципы
-
-- Никаких фреймворков и сборки.
-- Классический браузерный runtime на ES modules.
-- Локально поставляемые статические артефакты.
-- Three.js используется в 3D режиме через `vendor/three.module.js` (без CDN).
-
-### Основные модули
-
-- `index.html` — структура страницы, панель управления, контейнеры представлений.
-- `css/style.css` — темы, сетка, адаптив и состояния compact.
-- `js/main.mjs` — состояние приложения и переключение view.
-- `js/ws.mjs` — WebSocket-менеджмент и переподключение.
-- `js/state.mjs` — общий state для 2D/3D.
-- `js/protocol.mjs` — бинарный парсер `live_streaming`.
-- `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` — 2D рендеры.
-- `js/three-view.mjs` — 3D MEA.
-- `js/demo.mjs` — synthetic demo stream.
-- `tools/run_simulator.py` — запуск локального источника симулятора.
-- `tools/capture_protocol.py` — запись бинарных payload для фикстур.
-- `test/*.test.mjs` — parser + browser smoke проверки.
-
-### WebSocket источники
-
-- `/_/ws/overview`
-- `/_/ws/live_streaming`
-
-Ожидается работа сразу с двумя каналами одновременно.
-
-### Query-параметры
-
-- `host` — хост сервера (по умолчанию `127.0.0.1`).
-- `port` — порт сервера (по умолчанию `1025`).
-- `window` — окно для raster.
-- `channel` — предвыбор канала.
-- `theme=dark|light`.
-- `view=2d|3d|split`.
-- `compact=1` — компактный layout для embed.
-- `demo=1` — режим без live simulator.
-- `pause=1` — старт в паузе.
-
-### 3D track подробности
-
-- Реализован как отдельный optional module.
-- 64 канала расположены в 8×8.
-- Для каждого узла рассчитываются визуальные метрики активности по состоянию общего стейта.
-- spike/stim-события создают короткий визуальный импульс.
-- Выбранный канал подсвечивается и выделяется в всех панелях.
-- Поддерживается hover/click-синхронизация канала.
-- Если WebGL недоступен, показывается fallback-текст.
-- Рендер не блокирует 2D цикл.
-
-### Демонстрационный и live сценарий
-
-#### Live (рекомендуем)
+Recommended environment:
 
 ```bash
 cd cl-spikeviz
@@ -124,57 +119,139 @@ uv pip install --python .venv/bin/python cl-sdk
 .venv/bin/python tools/run_simulator.py --seconds 300
 ```
 
-#### Demo
+If `cl` is missing, `tools/run_simulator.py` now fails with a clear message and install guidance.
 
-```bash
-cd cl-spikeviz
-python3 -m http.server 8080
-# открыть с ?demo=1
-```
+---
 
-В `run_simulator.py` добавлена диагностическая обработка отсутствия `cl-sdk`.
+## URL parameters
 
-### Тестирование
+- `host` (default `127.0.0.1`)
+- `port` (default `1025`)
+- `window` (raster window in seconds)
+- `channel` (preset channel number)
+- `theme=dark` or `theme=light`
+- `view=2d` (default), `view=3d`, `view=split`
+- `compact=1` (compact layout)
+- `demo=1` (use synthetic stream)
+- `pause=1` (start paused)
+
+---
+
+## Data model and rendering behavior
+
+- `overview` stream updates per-channel activity and flags used by heatmap and diagnostics.
+- `live_streaming` stream provides spike/stim events and sample payloads.
+- All renderers share one state container so channel selection and event timing stay consistent.
+- Pause mode freezes the visible state rather than stopping socket updates inconsistently.
+- 3D renderer is lazy-loaded only when needed and has explicit resize handling.
+- WebGL fallback text is shown when hardware/WebGL is unavailable.
+
+---
+
+## Mode definitions
+
+### 2D dashboard (default)
+
+Stable, compact, lab-style view intended for routine monitoring and screenshots.
+
+### 3D array view
+
+Exploratory spatial view:
+
+- 64-channel 3D electrode surface
+- active channels encode through size/intensity
+- transient pulse visuals on events
+- selection highlight and interaction feedback
+
+### Split view
+
+Best for side-by-side comparison during validation and design reviews.
+
+---
+
+## Exports and diagnostics
+
+Built-in actions:
+
+- **Copy debug** — endpoint status, selected channel, fps, counters, and current URL
+- **Copy iframe** — embeddable snippet for the current state
+- **Export CSV** — event window export
+- **Export bundle** — structured debug snapshot
+
+---
+
+## Testing and maintenance
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Run checks:
+
+```bash
 npm test
 npm run test:parse
 npm run test:ui
 ```
 
-Если отсутствует Chromium для Playwright:
+Install browser runtime if needed for UI tests:
 
 ```bash
 npx playwright install chromium
 ```
 
-### Экспорт и диагностика
+Capture protocol fixtures:
 
-- `Copy debug` — экспортирует состояние (URL, статусы сокетов, fps, канал, счётчики).
-- `Export CSV` — rolling события в CSV.
-- `Export bundle` — JSON с диагностическими данными.
-- `Copy iframe` — готовый embed URL.
+```bash
+python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
+```
 
-### Troubleshooting
+---
 
-- `ModuleNotFoundError: No module named 'cl'`
-  - установить `cl-sdk` в тот же интерпретатор, который запускает `run_simulator.py`.
-- Подключение не устанавливается
-  - проверить `host/port`, свободность порта и логи симулятора.
-- Только один сокет подключён
-  - ждать и перезапустить процесс симулятора.
-- В 3D пусто
-  - проверить WebGL в браузере; fallback-текст должен показываться при недоступности.
-- На iFrame интерфейс выходит за границы
-  - использовать `compact=1`.
+## Embedding
 
-### Рекомендации по разработке
+A compact embed usage pattern:
 
-- Поддерживай обратную совместимость control set MVP.
-- 3D и 2D используют единый стейт каналов.
-- Изменения в визуальной тематике выполняются через CSS и параметры рендера, не ломая parser и WebSocket слои.
+```html
+<iframe
+  src="https://your-host/cl-spikeviz/?host=127.0.0.1&port=1025&compact=1&view=split"
+  width="100%"
+  height="720"
+  title="cl-spikeviz"
+  frameborder="0">
+</iframe>
+```
 
-### Лицензия
+Use `compact=1` for narrow dashboards and iFrame contexts.
+
+---
+
+## Troubleshooting
+
+- **`ModuleNotFoundError: No module named 'cl'`**
+  - Install `cl-sdk` in the interpreter used to run `tools/run_simulator.py`.
+- **Only one socket is connected**
+  - Wait for simulator warm-up or restart and check port availability.
+- **No visible spikes**
+  - Validate stream subscription timing and inspect `live_streaming` status.
+- **3D canvas blank**
+  - Check WebGL support; fallback text should appear if rendering is unavailable.
+- **UI overflows in embed**
+  - Enable `compact=1`.
+
+---
+
+## Contributing and iteration notes
+
+- Keep parser and endpoint behavior stable.
+- Preserve the 2D dashboard as the default user path.
+- Treat 3D as an optional experimental track.
+- Any visual redesign should remain readable and operationally meaningful.
+
+---
+
+## License
 
 MIT
