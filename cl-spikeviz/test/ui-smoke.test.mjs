@@ -1,0 +1,137 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
+import { chromium } from "playwright";
+
+const root = normalize(join(import.meta.dirname, ".."));
+const mimeTypes = new Map([
+  [".css", "text/css"],
+  [".html", "text/html"],
+  [".js", "text/javascript"],
+  [".mjs", "text/javascript"],
+  [".json", "application/json"],
+]);
+
+test("demo mode keeps the default 2D dashboard and does not initialise 3D", async () => {
+  await withPage("/?demo=1", async ({ page, errors }) => {
+    await page.waitForTimeout(800);
+
+    assert.equal(await page.locator("#view-2d-button").getAttribute("aria-pressed"), "true");
+    assert.equal(await page.locator(".three-panel").evaluate((node) => getComputedStyle(node).display), "none");
+    assert.equal(await page.locator("#three-view canvas").count(), 0);
+    assert.equal(await hasHorizontalOverflow(page), false);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test("3D demo mode renders a WebGL canvas without console errors", async () => {
+  await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
+    await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 10000 });
+    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent));
+
+    const box = await page.locator("#three-view").boundingBox();
+    assert.ok(box.width > 320);
+    assert.ok(box.height > 320);
+    assert.equal(await page.locator(".webgl-fallback").count(), 0);
+    assert.equal(await hasHorizontalOverflow(page), false);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test("compact split view renders 2D and 3D panels without horizontal overflow", async () => {
+  await withPage("/?demo=1&view=split&compact=1", async ({ page, errors }) => {
+    await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 10000 });
+    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent));
+
+    assert.equal(await page.locator("#view-split-button").getAttribute("aria-pressed"), "true");
+    assert.equal(await page.locator(".raster-panel").evaluate((node) => getComputedStyle(node).display), "grid");
+    assert.equal(await page.locator(".three-panel").evaluate((node) => getComputedStyle(node).display), "grid");
+    assert.equal(await hasHorizontalOverflow(page), false);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test("3D channel selection updates the shared channel query state", async () => {
+  await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
+    await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 10000 });
+    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent));
+
+    const canvas = page.locator("#three-view canvas");
+    await canvas.scrollIntoViewIfNeeded();
+    const box = await canvas.boundingBox();
+    assert.ok(box, "expected 3D canvas bounds");
+    await canvas.click({
+      position: {
+        x: box.width * 0.5,
+        y: box.height * 0.64,
+      },
+    });
+    await page.waitForFunction(() => new URL(location.href).searchParams.has("channel"));
+
+    const channel = Number(new URL(page.url()).searchParams.get("channel"));
+    assert.ok(Number.isInteger(channel) && channel >= 0 && channel < 64);
+    assert.match(await page.locator("#selected-channel-text").textContent(), /^ch \d+$/);
+    assert.deepEqual(errors, []);
+  });
+});
+
+async function withPage(path, callback) {
+  const { server, url } = await startServer();
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1180, height: 900 } });
+  const errors = [];
+  page.on("console", (message) => {
+    if (["error", "warning"].includes(message.type()) && !isBrowserWebGLNoise(message.text())) {
+      errors.push(message.text());
+    }
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  try {
+    await page.goto(`${url}${path}`);
+    await page.waitForLoadState("load");
+    await callback({ page, errors });
+  } finally {
+    await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function startServer() {
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, "http://127.0.0.1");
+      const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
+      const filePath = normalize(join(root, pathname));
+      if (!filePath.startsWith(root)) {
+        response.writeHead(403);
+        response.end("Forbidden");
+        return;
+      }
+
+      const body = await readFile(filePath);
+      response.writeHead(200, {
+        "Content-Type": mimeTypes.get(extname(filePath)) || "application/octet-stream",
+      });
+      response.end(body);
+    } catch {
+      response.writeHead(404);
+      response.end("Not found");
+    }
+  });
+
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  return { server, url: `http://127.0.0.1:${address.port}` };
+}
+
+async function hasHorizontalOverflow(page) {
+  return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+}
+
+function isBrowserWebGLNoise(message) {
+  return message.includes("GL Driver Message")
+    || message.includes("CONTEXT_LOST_WEBGL");
+}

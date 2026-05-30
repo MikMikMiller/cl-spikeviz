@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>cl-spikeviz</title>
+    <link rel="stylesheet" href="./css/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar" aria-label="Connection controls">
+        <div class="brand-block">
+          <h1>cl-spikeviz</h1>
+          <p>Live simulator activity</p>
+        </div>
+
+        <form class="connection-form" id="connection-form">
+          <label>
+            <span>Host</span>
+            <input id="host-input" name="host" autocomplete="off" spellcheck="false">
+          </label>
+          <label>
+            <span>Port</span>
+            <input id="port-input" name="port" inputmode="numeric" pattern="[0-9]*">
+          </label>
+          <label class="range-label">
+            <span>Window <output id="window-output">5s</output></span>
+            <input id="window-input" name="window" type="range" min="1" max="10" step="1">
+          </label>
+          <label class="channel-label">
+            <span>Channel</span>
+            <input id="channel-input" name="channel" inputmode="numeric" pattern="[0-9]*" placeholder="auto">
+          </label>
+          <label class="theme-label">
+            <span>Theme</span>
+            <select id="theme-input" name="theme">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+          <button type="submit">Connect</button>
+          <button id="pause-button" type="button" aria-pressed="false">Pause</button>
+          <button id="reset-button" type="button">Reset</button>
+          <button id="auto-channel-button" type="button" aria-pressed="false" title="Auto-select active channel">Auto</button>
+          <button id="export-csv-button" type="button" title="Export CSV">CSV</button>
+          <button id="export-bundle-button" type="button" title="Export debug bundle">Bundle</button>
+        </form>
+
+        <div class="status-strip" role="status" aria-live="polite">
+          <span id="status-dot" class="status-dot waiting"></span>
+          <span id="status-text">waiting for simulator</span>
+          <span id="stats-text">0 spikes</span>
+        </div>
+
+        <div class="diagnostics" aria-label="Connection diagnostics">
+          <span id="overview-status" class="endpoint-pill waiting">overview waiting</span>
+          <span id="live-status" class="endpoint-pill waiting">live_streaming waiting</span>
+          <span id="protocol-status" class="endpoint-pill">Protocol: cl-sdk live_streaming + overview</span>
+          <span id="health-status" class="endpoint-pill">health waiting</span>
+          <span id="mode-status" class="endpoint-pill">live mode</span>
+          <button id="copy-debug-button" type="button" title="Copy debug info">Debug</button>
+          <button id="copy-embed-button" type="button" title="Copy iframe snippet">Iframe</button>
+          <p id="diagnostic-hint">Start the simulator or use <code>?demo=1</code>.</p>
+        </div>
+
+        <nav class="presets" aria-label="Preset views">
+          <button type="button" data-preset="live">Live default</button>
+          <button type="button" data-preset="compact">Compact embed</button>
+          <button type="button" data-preset="demo">Demo preview</button>
+          <button type="button" data-preset="light">Light theme</button>
+        </nav>
+
+        <nav class="view-switch" aria-label="Visualisation mode">
+          <button id="view-2d-button" type="button" data-view="2d" aria-pressed="true">2D dashboard</button>
+          <button id="view-3d-button" type="button" data-view="3d" aria-pressed="false">3D array</button>
+          <button id="view-split-button" type="button" data-view="split" aria-pressed="false">Split view</button>
+        </nav>
+      </header>
+
+      <section class="viz-grid" aria-label="Live visualisation">
+        <article class="panel raster-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Raster</h2>
+              <p id="raster-readout">Spikes and stims in the rolling window</p>
+            </div>
+            <span id="fps-text" class="metric">fps unknown</span>
+          </div>
+          <canvas id="raster-canvas" aria-label="Spike raster"></canvas>
+        </article>
+
+        <article class="panel heatmap-panel">
+          <div class="panel-head">
+            <div>
+              <h2>MEA heatmap</h2>
+              <p id="heatmap-readout">Recent per-channel activity</p>
+            </div>
+            <span id="channel-count-text" class="metric">0 ch</span>
+          </div>
+          <canvas id="heatmap-canvas" aria-label="MEA heatmap"></canvas>
+        </article>
+
+        <article class="panel waveform-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Waveforms</h2>
+              <p id="waveform-subtitle">Click a channel</p>
+            </div>
+            <span id="selected-channel-text" class="metric">none</span>
+          </div>
+          <canvas id="waveform-canvas" aria-label="Per-channel waveforms"></canvas>
+        </article>
+
+        <article class="panel three-panel">
+          <div class="panel-head">
+            <div>
+              <h2>3D MEA array</h2>
+              <p id="three-readout">64-channel activity surface</p>
+            </div>
+            <span id="three-status-text" class="metric">standby</span>
+          </div>
+          <div id="three-view" class="three-view" role="img" aria-label="3D microelectrode array activity view">
+            <p class="webgl-fallback">Open the 3D array view to initialise WebGL.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script type="module" src="./js/main.mjs"></script>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+[
+  {
+    "type": "text",
+    "message": {
+      "status": "reset",
+      "frames_per_second": 25000
+    }
+  },
+  {
+    "type": "text",
+    "message": {
+      "status": "cl_spikes",
+      "spike_count": 2
+    }
+  },
+  {
+    "type": "binary",
+    "status": "cl_spikes",
+    "header": {
+      "status": "cl_spikes",
+      "spike_count": 2
+    },
+    "file": "cl_spikes-0.bin",
+    "bytes": 624,
+    "hex": "2ef804000000000054f90400000000000529000000000000b782663d86df7dbe"
+  },
+  {
+    "type": "text",
+    "message": {
+      "status": "cl_spikes",
+      "spike_count": 5
+    }
+  },
+  {
+    "type": "binary",
+    "status": "cl_spikes",
+    "header": {
+      "status": "cl_spikes",
+      "spike_count": 5
+    },
+    "file": "cl_spikes-1.bin",
+    "bytes": 1548,
+    "hex": "e7fa04000000000092fb0400000000007cfc040000000000dffc040000000000"
+  }
+]
