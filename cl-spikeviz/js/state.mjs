@@ -140,10 +140,11 @@ export function addSpikes(state, spikes) {
     state.totals.spikes += 1;
 
     if (spike.channel < state.channelCount) {
-      state.channelSpikeCounts[spike.channel] = (state.channelSpikeCounts[spike.channel] || 0) + 1;
+      const nextCount = (state.channelSpikeCounts[spike.channel] || 0) + 1;
+      state.channelSpikeCounts[spike.channel] = nextCount;
       state.channelLastSpikeSeconds[spike.channel] = seconds;
-      if ((state.channelActivity[spike.channel] || 0) > strongestActivity) {
-        strongestActivity = state.channelActivity[spike.channel] || 0;
+      if (nextCount > strongestActivity) {
+        strongestActivity = nextCount;
         strongestChannel = spike.channel;
       }
 

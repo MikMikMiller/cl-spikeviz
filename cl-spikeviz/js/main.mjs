@@ -21,6 +21,7 @@ const config = {
   port: params.get("port") || "1025",
   demo: params.get("demo") === "1",
   compact: params.get("compact") === "1",
+  paused: params.get("pause") === "1",
   theme: params.get("theme") === "light" ? "light" : "dark",
   view: ["3d", "split"].includes(params.get("view")) ? params.get("view") : "2d",
   initialChannel: params.has("channel") ? Number(params.get("channel")) : null,
@@ -346,6 +347,7 @@ function setQueryParams() {
   next.set("host", config.host);
   next.set("port", config.port);
   next.set("window", String(state.windowSeconds));
+  setOptionalParam(next, "pause", state.paused);
   setOptionalParam(next, "demo", config.demo);
   setOptionalParam(next, "compact", config.compact);
   if (config.theme === "light") {
@@ -608,8 +610,16 @@ function ensureThreeView() {
   elements.threeStatusText.textContent = "loading";
   threeViewPromise = import("./three-view.mjs")
     .then(({ createThreeMeaView }) => createThreeMeaView(elements.three, {
-      onSelectChannel: selectChannel,
-      onHoverChannel: hoverChannel,
+      onSelectChannel: (channel) => {
+        if (channel !== null && channel < state.channelCount) {
+          selectChannel(channel);
+        }
+      },
+      onHoverChannel: (channel) => {
+        if (channel === null || channel < state.channelCount) {
+          hoverChannel(channel);
+        }
+      },
       onStatus: (status) => {
         elements.threeStatusText.textContent = status;
       },
@@ -659,6 +669,7 @@ function clampNumber(value, min, max, fallback) {
 
 updateConnectionStatus();
 updateUiLabels();
+setPaused(config.paused);
 setView(config.view, { updateQuery: false });
 connection.connect();
 requestAnimationFrame(render);
