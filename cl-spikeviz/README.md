@@ -1,74 +1,101 @@
 # cl-spikeviz
 
-Standalone browser visualizer for Cortical Labs `cl-sdk` simulator streams.
+`cl-spikeviz` — это автономный браузерный визуализатор для потоков нейронных данных `cl-sdk`.
 
-The project is intentionally lightweight:
+Проект сделан как рабочий инструмент для лабораторной визуализации: без фреймворка, без сборки, без сложного бэкэнда. Он запускается как статический сайт и напрямую рисует данные из двух WebSocket-каналов симулятора.
 
-- static HTML/CSS and vanilla JS ES modules
+---
+
+## Что это за проект
+
+`cl-spikeviz` предназначен для просмотра активности нейронной платы (MEA) в реальном времени.
+
+Он поддерживает два режима источника данных:
+
+- live режим через WebSocket (`cl-sdk` simulator)
+- demo режим с синтетическим потоком прямо в браузере
+
+Базовый MVP 2D остался неизменным и расширен экспериментальным 3D модулем:
+
+- raster plot
+- MEA heatmap
+- waveform viewer
+- экспериментальный 3D-массив
+- switch между режимами `2D / 3D / split`
+
+---
+
+## Ключевые фичи
+
+- Статический frontend (HTML/CSS/ES modules)
 - no framework, no build step
-- no required CDN in production
-- live mode via WebSocket and optional demo mode
-- optional WebGL/Three.js 3D track
-
-## What it includes
-
-- Core 2D dashboard (MVP kept intact):
-  - raster plot
-  - MEA activity heatmap
-  - waveform viewer
-- Experimental 3D track:
-  - 64-channel 8×8 microelectrode array
-  - activity-driven height and color
-  - short pulse/ripple animation for spikes and events
-  - selected channel highlight
-  - hover/click channel sync with 2D views
-- Existing controls preserved:
-  - host / port / window / channel / theme
-  - pause / resume, reset
+- WebSocket-подключение к двум endpoint’ам симулятора:
+  - `/_/ws/overview`
+  - `/_/ws/live_streaming`
+- Парсинг бинарного протокола `live_streaming` и служебного `overview`
+- 64-канальная визуализация MEA (8x8)
+- Сохранение и синхронизация выбранного канала между всеми панелями
+- Состояния контроля и отладки:
+  - pause/resume
+  - reset
   - auto-select active channel
-  - demo mode (`?demo=1`)
-  - compact embed mode (`?compact=1`)
-  - copy debug info
-  - export CSV / export debug bundle
+  - copy debug
+  - export CSV / export bundle
+- Поддержка компактного режима для iframe
+- Graceful fallback при недоступности WebGL (текст в 3D панели)
 
-## Project structure (important files)
+---
 
-- `index.html` — layout, controls, status bar, view tabs
-- `css/style.css` — dashboard + 3D visual theme
-- `js/main.mjs` — orchestration and view switching
-- `js/ws.mjs` — WebSocket clients for live stream and overview
-- `js/state.mjs` — shared app state
-- `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` — 2D views
-- `js/three-view.mjs` — optional Three.js 3D MEA view
-- `js/protocol.mjs` — binary protocol parser
-- `js/demo.mjs` — local synthetic demo event generator
-- `tools/run_simulator.py` — start local simulator stream helper
-- `tools/capture_protocol.py` — capture binary protocol payloads for fixtures
-- `test/*.test.mjs` — parser and browser smoke coverage
-- `vendor/three.module.js` — local pinned Three.js module
+## Архитектура
 
-## Run the app
+- `index.html` — разметка страницы, панель управления, вкладки/переключение представлений.
+- `css/style.css` — темы, сетка, layout, стили 2D/3D.
+- `js/main.mjs` — основная инициализация, переключение `view`, связка 2D+3D, состояние паузы.
+- `js/ws.mjs` — подключения к WebSocket, статусы `overview` и `live_streaming`, переподключения.
+- `js/state.mjs` — общий стейт канала, счетчики, события, последние пики и флаги стимуляции.
+- `js/protocol.mjs` — декодирование бинарных payload’ов.
+- `js/raster.mjs` — временной растр по каналам.
+- `js/heatmap.mjs` — heatmap по активности.
+- `js/waveforms.mjs` — окно волновых форм выбранного канала.
+- `js/three-view.mjs` — 3D MEA (Three.js): 64 электрода, активность, пульсации, выделение канала.
+- `js/canvas.mjs`, `js/demo.mjs` — отрисовка canvas helper’ов и генератор демо.
+- `tools/run_simulator.py` — локальный запуск симулятора и понятная диагностика отсутствия `cl-sdk`.
+- `tools/capture_protocol.py` — захват протокола для локальных фикстур.
+- `test/*.test.mjs` — парсерные тесты + smoke для UI.
+- `vendor/three.module.js` — локальная зафиксированная сборка Three.js.
+
+---
+
+## Короткий запуск (2 минуты)
+
+1. Запусти локальный сервер (в папке проекта):
 
 ```bash
 cd cl-spikeviz
 python3 -m http.server 8080
 ```
 
-Open in browser:
+2. Открой:
 
-- default dashboard (live): `http://127.0.0.1:8080/?host=127.0.0.1&port=1025&window=5`
-- demo mode: `http://127.0.0.1:8080/?demo=1`
-- 3D mode: `http://127.0.0.1:8080/?demo=1&view=3d`
-- split view: `http://127.0.0.1:8080/?demo=1&view=split&compact=1`
+- live (если запущен simulator):
+  `http://127.0.0.1:8080/?host=127.0.0.1&port=1025&window=5`
+- demo:
+  `http://127.0.0.1:8080/?demo=1`
+- 3D:
+  `http://127.0.0.1:8080/?demo=1&view=3d`
+- split:
+  `http://127.0.0.1:8080/?demo=1&view=split&compact=1`
 
-WebSocket endpoints:
+WebSocket endpoint’ы в live режиме:
 
 - `ws://127.0.0.1:1025/_/ws/overview`
 - `ws://127.0.0.1:1025/_/ws/live_streaming`
 
-## Live simulator (Python)
+---
 
-Recommended setup uses Python 3.12+:
+## Пример запуска живого режима через `cl-sdk`
+
+Рекомендуемый путь с Python 3.12+:
 
 ```bash
 cd cl-spikeviz
@@ -77,32 +104,112 @@ uv pip install --python .venv/bin/python cl-sdk
 .venv/bin/python tools/run_simulator.py --seconds 300
 ```
 
-If `cl` is unavailable, `tools/run_simulator.py` now returns a clear install note instead of a stack trace.
+Новый сценарий обработки ошибок в `run_simulator.py`:
 
-## URL parameters
+- при отсутствии `cl-sdk` не падает stack trace,
+- выводит понятную подсказку по установке.
 
-- `host` (default `127.0.0.1`)
-- `port` (default `1025`)
-- `window` (1–10 seconds, default `5`)
-- `channel` (preset selected channel)
-- `theme=dark` or `theme=light`
-- `view=2d` (default), `view=3d`, `view=split`
-- `demo=1`
+---
+
+## Query параметры
+
+- `host` (по умолчанию `127.0.0.1`)
+- `port` (по умолчанию `1025`)
+- `window` (в секундах: длина окна raster)
+- `channel` (предвыбор канала)
+- `theme=dark` или `theme=light`
+- `view=2d` (дефолт), `view=3d`, `view=split`
 - `compact=1`
+- `demo=1`
 - `pause=1`
 
-## 3D view behavior
+---
 
-- works as an optional mode and does not replace the 2D dashboard
-- uses the same shared state as 2D views
-- respects pause and freezes visual state when paused
-- handles resize
-- shows fallback text if WebGL is unavailable
-- designed for readability in dashboard, split, and compact layouts
+## 3D track (экспериментальный, но рабочий)
 
-## Embeds
+3D-режим не заменяет 2D, а добавляется как отдельный слой:
 
-The app has iframe helpers and compact mode for embed usage.
+- 64 электрода в виде сетки 8×8
+- высота, насыщенность и свечение зависят от недавней активности
+- всплески по событию рисуются как короткие кольца/волны над выбранным электродом
+- нажатия и наведение синхронизируют выбранный канал со всеми панелями
+- при паузе состояние замораживается в последнем кадре
+- корректная обработка ресайза окна
+- fallback текст, если WebGL недоступен
+
+---
+
+## Что происходит с данными
+
+- `overview` stream: служебный блок активности по каналам и флагам, используется для heatmap и общей оценки состояния.
+- `live_streaming`: сырой поток spikes/stims, который декодируется и преобразуется в события для raster/waveforms/3D.
+- парсер поддерживает структуру payload’а (`timestamps`, `channels`, `samples`, выравнивание по 8 байтам и пр.)
+- состояние событий (спайки и стимулы) буферизуется для скользящего окна, чтобы все режимы рисовались согласованно.
+
+---
+
+## Отчёты, диагностика и экспорт
+
+- `Copy debug` — копирует диагностическую сводку состояния в буфер:
+  - текущий URL
+  - статус подключения по двум сокетам
+  - выбранный канал
+  - fps и счётчики
+- `Copy iframe` — готовый embed-фрагмент для вставки.
+- `Export CSV` — экспорт текущего окна в CSV.
+- `Export bundle` — экспорт JSON-бандла для отладки.
+
+---
+
+## Встроенные пресеты и управление
+
+- host/port: переключение источника live-сервера
+- window: окно агрегации спайков
+- theme: dark/light
+- channel и auto channel
+- pause/resume и reset
+- компактный режим для iframe
+- горячие клавиши:
+  - `Space` — pause/resume
+  - `R` — reset
+  - `A` — auto channel
+  - `↑` `↓` — смена выбранного канала
+
+---
+
+## Проверка и тестирование
+
+Установка зависимостей:
+
+```bash
+npm install
+```
+
+Запуск тестов:
+
+```bash
+npm test
+npm run test:parse
+npm run test:ui
+```
+
+Если нужно браузерное окружение для `test:ui`:
+
+```bash
+npx playwright install chromium
+```
+
+Сбор фикстур с живого потока:
+
+```bash
+python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
+```
+
+---
+
+## Встраивание в iframe
+
+Пример:
 
 ```html
 <iframe
@@ -113,49 +220,33 @@ The app has iframe helpers and compact mode for embed usage.
 </iframe>
 ```
 
-## Exports and diagnostics
+Для плотных embed’ов используйте `compact=1`.
 
-- `Copy debug` — copies current URL, mode, endpoint state, FPS, channel and totals
-- `Export CSV` — exports rolling events in CSV
-- `Export debug bundle` — exports snapshot JSON for troubleshooting
+---
 
-## Testing
+## Ограничения и нюансы
 
-Install once:
+- Это экспериментальный 3D модуль: он полностью опционален по UX и не должен ломать 2D core.
+- Визуальная часть 3D адаптирована под dashboard-формат и не претендует на “sci-fi look”.
+- Базовая цель — читаемость метрик и устойчивый live поток.
 
-```bash
-npm install
-```
-
-Run tests:
-
-```bash
-npm test
-npm run test:parse
-npm run test:ui
-```
-
-Playwright Chromium install (если нужно):
-
-```bash
-npx playwright install chromium
-```
-
-Capture protocol fixtures from a live run:
-
-```bash
-python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
-```
+---
 
 ## Troubleshooting
 
-- `ModuleNotFoundError: No module named 'cl'` -> install `cl-sdk` in the same interpreter used for simulator.
-- `overview` or `live_streaming` not connected -> check simulator process and socket availability on port `1025`.
-- `overview connected` but no heatmap movement -> check `/ _/ws/overview` and endpoint health.
-- `live_streaming connected` but no spikes yet -> wait few seconds or try demo mode to confirm UI path.
-- 3D blank scene -> check browser WebGL and fallback behavior.
-- Embeds look cramped -> use `?compact=1`.
+- `ModuleNotFoundError: No module named 'cl'`
+  - Установи `cl-sdk` в тот же интерпретатор, из которого запускается `tools/run_simulator.py`.
+- Simulator живой запущен, но интерфейс не видит сокеты
+  - проверь порт `1025`, процессы, и что endpoint’ы доступны.
+- Только один из статусов connected
+  - обычно сервис или подпоток временно не поднят; подожди и проверь журнал симулятора.
+- В 3D пустой экран
+  - браузер без WebGL/агрессивные расширения; включен fallback текст.
+- Слишком плотный layout в iframe
+  - перезапусти с `compact=1`.
 
-## License
+---
+
+## Лицензия
 
 MIT
