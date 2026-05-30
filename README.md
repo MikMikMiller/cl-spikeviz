@@ -4,9 +4,7 @@
 
 It is designed as a no-framework, no-build-step static web application that can run from any simple file server. The project includes a stable 2D dashboard as the production-safe baseline and an experimental Three.js 3D MEA track.
 
-![cl-spikeviz](https://img.shields.io/badge/status-live%20dashboard-2D%20%2B%203D-blue)
-
----
+--- 
 
 ## What this project does
 
