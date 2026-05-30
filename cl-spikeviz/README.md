@@ -194,6 +194,17 @@ Run checks:
 npm test
 npm run test:parse
 npm run test:ui
+npm run test:stress -- --minutes=60 --interval=1000
+```
+
+Stress profile (long-run headless demo):
+
+```bash
+# 10 minutes
+npm run test:stress -- --minutes=10
+
+# 20 minutes
+npm run test:stress -- --minutes=20
 ```
 
 Install browser runtime if needed for UI tests:

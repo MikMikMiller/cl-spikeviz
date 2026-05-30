@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "test:parse": "node --test test/parse.test.mjs",
-    "test:ui": "node --test test/ui-smoke.test.mjs"
+    "test:ui": "node --test test/ui-smoke.test.mjs",
+    "test:stress": "node tools/stress-visualizer.mjs"
   },
   "devDependencies": {
     "playwright": "^1.60.0"
