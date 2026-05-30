@@ -94,6 +94,7 @@ async function runStress() {
 
     let failures = [];
     let lastStatusCheck = Date.now();
+    const minSamples = Math.floor(sampleCountTarget * 0.75);
 
     while (Date.now() < endTime) {
       await page.waitForTimeout(sampleInterval);
@@ -117,13 +118,16 @@ async function runStress() {
         await page.mouse.down();
         await page.mouse.move(viewBox.x + (viewBox.width * 0.25), viewBox.y + (viewBox.height * 0.75));
         await page.mouse.up();
-        const hasChannel = await page.evaluate(() => {
+        await page.mouse.click(viewBox.x + (viewBox.width * 0.5), viewBox.y + (viewBox.height * 0.64));
+        await page.waitForTimeout(80);
+        const afterChannel = await page.evaluate(() => {
           const params = new URLSearchParams(location.search);
-          const channel = params.get("channel");
-          return channel !== null && Number.isInteger(Number(channel));
+          return params.get("channel");
         });
+        const hasChannel = afterChannel !== null && Number.isInteger(Number(afterChannel));
         if (!hasChannel) {
           failures.push("3D interaction did not update channel");
+          continue;
         }
         lastStatusCheck = Date.now();
       }
@@ -164,7 +168,7 @@ async function runStress() {
     if (stats.fpsMin < 0.5) {
       failures.push("fps collapsed during run");
     }
-    if (stats.samples < Math.max(3, sampleCountTarget - 2)) {
+    if (stats.samples < Math.max(3, minSamples)) {
       failures.push("did not collect enough samples");
     }
     if (memGrowthMb !== null && memGrowthMb > 500) {

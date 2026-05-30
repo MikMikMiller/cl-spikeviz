@@ -52,6 +52,21 @@ test("parseStimPayload reads timestamp and channel sections", () => {
   ]);
 });
 
+test("parseStimPayload tolerates cl-sdk source-compatible trailing channel padding", () => {
+  const stimCount = 9;
+  const buffer = new ArrayBuffer(stimCount * 8 + stimCount + channelPadding(stimCount));
+  const view = new DataView(buffer);
+
+  for (let i = 0; i < stimCount; i += 1) {
+    view.setBigUint64(i * 8, 7000n + BigInt(i), true);
+    view.setUint8(stimCount * 8 + i, i + 10);
+  }
+
+  const stims = parseStimPayload(buffer, stimCount);
+  assert.equal(stims.length, stimCount);
+  assert.deepEqual(stims.at(-1), { timestamp: 7008n, channel: 18 });
+});
+
 test("parseOverviewPayload reads int16 min max flags chunks", () => {
   const channelCount = 2;
   const chunkCount = 2;

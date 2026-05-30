@@ -6,11 +6,12 @@ Captured endpoints:
 
 - `overview.json` plus `overview-*.bin`: `/_/ws/overview` reset metadata and int16 `[min, max, flags]` chunks.
 - `live_streaming.json` plus `cl_spikes-*.bin`: `/_/ws/live_streaming` headers and `cl_spikes` binary payloads.
+- `cl_stims-*.bin` may appear when stim events occur during capture.
 
 Refresh fixtures while the simulator is running:
 
 ```bash
-python tools/capture_protocol.py --seconds 5 --out test/fixtures
+python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
 ```
 
 The spike payload layout under test is:
@@ -20,4 +21,10 @@ timestamps: N * uint64 little-endian
 channels:   N * uint8
 padding:    align samples to 8 bytes
 samples:    N * 75 * float32 little-endian
+```
+
+Before committing refreshed fixtures, record the `cl-sdk` version or source commit in `docs/STREAM_PROTOCOL.md` if it changed, then run:
+
+```bash
+npm run test:parse
 ```

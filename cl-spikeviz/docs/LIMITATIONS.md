@@ -1,0 +1,41 @@
+# Limitations
+
+`cl-spikeviz` v0.1 is a simulator-stream preview for reviewers. It is not a complete client for every `cl-sdk` visualization feature.
+
+## Scope
+
+- Targets browser visualization of `cl-sdk` simulator WebSocket streams.
+- Uses the current source-observed `/_/ws/overview` and `/_/ws/live_streaming` endpoints.
+- Does not require CL1 hardware.
+- Does not assume access to hardware-only behavior.
+
+## Protocol Limits
+
+- The public `cl-sdk` docs describe enabling the WebSocket server, but do not publish a standalone versioned protocol for the two endpoint payload layouts.
+- Parser compatibility is guarded by captured fixtures and source review.
+- Generic custom data streams are not rendered. Messages with `status` values `new_data`, `attributes_reset`, and `attributes_updated` are ignored.
+- Stim events are parsed when the stream provides `cl_stims`, but current committed captured fixtures may not include stim binary payloads if no stims occurred during capture.
+- The app does not send stimulation commands to the simulator.
+
+## Browser Limits
+
+- Live mode connects from the browser to `ws://<host>:<port>`. Browser mixed-content rules can block `ws://` connections when the app is served over `https://`.
+- GitHub Pages can host demo mode, but live simulator mode usually needs local static hosting or another setup that avoids mixed-content restrictions.
+- WebGL availability depends on browser, GPU, and headless test environment. The 2D dashboard remains the default path.
+
+## Data and Rendering Limits
+
+- Demo mode is deterministic synthetic browser data for UI review only.
+- The 3D view is an optional preview surface and shares the same parsed event state as the 2D dashboard.
+- The CSV export covers the rolling local event window, not a full simulator recording.
+- Local pause freezes visual state handling; it does not pause the upstream simulator.
+
+## Review Boundaries
+
+For v0.1, review should focus on:
+
+- whether connection diagnostics are understandable
+- whether documented parser assumptions match current `cl-sdk` source and fixtures
+- whether demo mode is useful without setup
+- whether live mode can connect to a local simulator and render incoming events
+- whether unsupported cases are visible enough for future work

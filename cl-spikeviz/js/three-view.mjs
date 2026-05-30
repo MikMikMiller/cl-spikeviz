@@ -341,7 +341,7 @@ export async function createThreeMeaView(container, { onSelectChannel, onHoverCh
 
   function nearestProjectedChannel(localX, localY, rect) {
     let nearest = null;
-    let bestDistance = 34;
+    let bestDistance = Number.POSITIVE_INFINITY;
 
     for (const pad of pads) {
       pad.getWorldPosition(worldPosition);
