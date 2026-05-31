@@ -71,16 +71,16 @@ async function runStress() {
     await page.waitForLoadState("networkidle");
     await page.waitForFunction(() => document.body.classList.contains("view-split"), { timeout: 10_000 });
 
-    const threeCanvas = await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 15_000 });
-    const threePanelText = await page.waitForSelector("#three-status-text", { timeout: 10_000 });
+    const isoCanvas = await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 15_000 });
+    const isoStatusText = await page.waitForSelector("#iso-status", { timeout: 10_000 });
     const loadedUrl = new URL(page.url());
     if (loadedUrl.searchParams.get("demo") !== "1") {
       throw new Error("stress check requires demo mode to avoid simulator dependency");
     }
 
-    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent), { timeout: 15_000 });
+    await page.waitForFunction(() => document.querySelector("#iso-status")?.textContent?.trim().length > 0, { timeout: 15_000 });
 
-    const viewBox = await threeCanvas.boundingBox();
+    const viewBox = await isoCanvas.boundingBox();
     if (!viewBox) {
       throw new Error("3D view bounds are not available");
     }
@@ -108,9 +108,9 @@ async function runStress() {
         stats.heapMax = Math.max(stats.heapMax, sample.heapUsed);
       }
 
-      const statusText = await threePanelText.textContent();
+      const statusText = await isoStatusText.textContent();
       if (statusText === "unavailable" || statusText === "loading") {
-        failures.push(`unexpected three-view status: ${statusText}`);
+        failures.push(`unexpected iso-view status: ${statusText}`);
       }
 
       if (Date.now() - lastStatusCheck >= 8000) {
@@ -133,7 +133,7 @@ async function runStress() {
       }
 
       await page.waitForFunction(() => {
-        const status = document.querySelector("#three-status-text")?.textContent;
+        const status = document.querySelector("#iso-status")?.textContent;
         return status !== "unavailable" && status !== "loading";
       }, { timeout: 2000 });
     }

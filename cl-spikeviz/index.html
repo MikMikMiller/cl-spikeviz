@@ -1,131 +1,257 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>cl-spikeviz</title>
-    <link rel="stylesheet" href="./css/style.css">
-  </head>
-  <body>
-    <main class="app-shell">
-      <header class="topbar" aria-label="Connection controls">
-        <div class="brand-block">
-          <h1>cl-spikeviz</h1>
-          <p>Live simulator activity</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cl-spikeviz — neural activity console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ============ COMMAND BAR ============ -->
+    <header class="cmdbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10.2" stroke="var(--ink)" stroke-width="1.4"/>
+            <circle cx="12" cy="12" r="3.1" fill="var(--accent)"/>
+            <path d="M12 2v5.2M12 16.8V22M2 12h5.2M16.8 12H22M5 5l3.7 3.7M15.3 15.3 19 19M19 5l-3.7 3.7M8.7 15.3 5 19"
+                  stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="word">
+          <b>cl-spikeviz</b>
+          <span>neural activity console</span>
+        </span>
+      </div>
+
+      <div class="live-cluster">
+        <div class="statline">
+          <span id="status-dot" class="dot waiting"></span>
+          <span class="lab">status</span>
+          <span id="status-text" class="val">initialising</span>
         </div>
-
-        <form class="connection-form" id="connection-form">
-          <label>
-            <span>Host</span>
-            <input id="host-input" name="host" autocomplete="off" spellcheck="false">
-          </label>
-          <label>
-            <span>Port</span>
-            <input id="port-input" name="port" inputmode="numeric" pattern="[0-9]*">
-          </label>
-          <label class="range-label">
-            <span>Window <output id="window-output">5s</output></span>
-            <input id="window-input" name="window" type="range" min="1" max="10" step="1">
-          </label>
-          <label class="channel-label">
-            <span>Channel</span>
-            <input id="channel-input" name="channel" inputmode="numeric" pattern="[0-9]*" placeholder="auto">
-          </label>
-          <label class="theme-label">
-            <span>Theme</span>
-            <select id="theme-input" name="theme">
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-            </select>
-          </label>
-          <button type="submit">Connect</button>
-          <button id="pause-button" type="button" aria-pressed="false">Pause</button>
-          <button id="reset-button" type="button">Reset</button>
-          <button id="auto-channel-button" type="button" aria-pressed="false" title="Auto-select active channel">Auto</button>
-          <button id="export-csv-button" type="button" title="Export CSV">CSV</button>
-          <button id="export-bundle-button" type="button" title="Export debug bundle">Bundle</button>
-        </form>
-
-        <div class="status-strip" role="status" aria-live="polite">
-          <span id="status-dot" class="status-dot waiting"></span>
-          <span id="status-text">waiting for simulator</span>
-          <span id="stats-text">0 spikes</span>
+        <div class="statline">
+          <span class="lab">events</span>
+          <span id="stats-text" class="val">0 spk · 0 stm</span>
         </div>
-
-        <div class="diagnostics" aria-label="Connection diagnostics">
-          <span id="overview-status" class="endpoint-pill waiting">overview waiting</span>
-          <span id="live-status" class="endpoint-pill waiting">live_streaming waiting</span>
-          <span id="protocol-status" class="endpoint-pill">Protocol: cl-sdk live_streaming + overview</span>
-          <span id="health-status" class="endpoint-pill">health waiting</span>
-          <span id="mode-status" class="endpoint-pill">live mode</span>
-          <button id="copy-debug-button" type="button" title="Copy debug info">Debug</button>
-          <button id="copy-embed-button" type="button" title="Copy iframe snippet">Iframe</button>
-          <p id="diagnostic-hint">Start the simulator or use <code>?demo=1</code>.</p>
+        <div class="statline">
+          <span class="lab">rate</span>
+          <span id="rate-text" class="val">0.0 /s</span>
         </div>
+        <span style="flex:1"></span>
+        <div class="clock">session <b id="clock-text">00:00</b></div>
+      </div>
 
-        <nav class="presets" aria-label="Preset views">
-          <button type="button" data-preset="live">Live default</button>
-          <button type="button" data-preset="compact">Compact embed</button>
-          <button type="button" data-preset="demo">Demo preview</button>
-          <button type="button" data-preset="light">Light theme</button>
-        </nav>
+      <nav class="viewtabs" aria-label="View mode">
+        <button data-view="2d" aria-pressed="true" class="is-active">2D dashboard</button>
+        <button data-view="3d" aria-pressed="false">3D array</button>
+        <button data-view="split" aria-pressed="false">Split</button>
+      </nav>
+    </header>
 
-        <nav class="view-switch" aria-label="Visualisation mode">
-          <button id="view-2d-button" type="button" data-view="2d" aria-pressed="true">2D dashboard</button>
-          <button id="view-3d-button" type="button" data-view="3d" aria-pressed="false">3D array</button>
-          <button id="view-split-button" type="button" data-view="split" aria-pressed="false">Split view</button>
-        </nav>
-      </header>
+    <div class="body">
 
-      <section class="viz-grid" aria-label="Live visualisation">
-        <article class="panel raster-panel">
-          <div class="panel-head">
-            <div>
+      <!-- ============ CONTROL RAIL ============ -->
+      <aside class="rail">
+
+        <section class="section">
+          <h3>Connection</h3>
+          <div class="field">
+            <div class="row2">
+              <div>
+                <label for="host-input">Host</label>
+                <input id="host-input" type="text" value="127.0.0.1" autocomplete="off" spellcheck="false">
+              </div>
+              <div>
+                <label for="port-input">Port</label>
+                <input id="port-input" type="text" value="1025" inputmode="numeric">
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <button id="connect-btn" class="btn btn-primary btn-full" type="button">
+              <svg class="ic" viewBox="0 0 16 16" fill="none"><path d="M8 1v6M4.5 3.2a5 5 0 1 0 7 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Connect
+            </button>
+          </div>
+          <div class="protocol-tag">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.5h3M4 9.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span>protocol <b>cl-sdk</b> · live_streaming + overview</span>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>Stream</h3>
+          <div class="field">
+            <div class="lbl-row">
+              <span class="lbl">Rolling window</span>
+              <span class="val" id="window-output">5.0 s</span>
+            </div>
+            <input id="window-input" type="range" min="1" max="10" step="1" value="5">
+          </div>
+          <div class="field btn-row-3">
+            <button id="pause-btn" class="btn" type="button" aria-pressed="false">Pause</button>
+            <button id="reset-btn" class="btn" type="button">Reset</button>
+            <button id="auto-btn" class="btn" type="button" aria-pressed="false" title="Auto-select most active channel">Auto</button>
+          </div>
+          <div class="field">
+            <span class="lbl">Presets</span>
+            <div class="chips" id="presets">
+              <button data-preset="live">Live default</button>
+              <button data-preset="compact">Compact embed</button>
+              <button data-preset="demo">Demo preview</button>
+              <button data-preset="paper">Paper / dark</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>Channel</h3>
+          <div class="field">
+            <div class="row-split">
+              <div>
+                <label for="channel-input">Selected</label>
+                <input id="channel-input" type="text" inputmode="numeric" placeholder="auto">
+              </div>
+              <div>
+                <label for="theme-input">Theme</label>
+                <select id="theme-input">
+                  <option value="paper">Paper</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="metrics">
+            <div class="m"><div class="k">Active ch</div><div class="v accent" id="m-channel">—</div></div>
+            <div class="m"><div class="k">Activity</div><div class="v" id="m-activity">—</div></div>
+            <div class="m"><div class="k">Spikes</div><div class="v" id="m-spikes">0</div></div>
+            <div class="m"><div class="k">Last spike</div><div class="v" id="m-last">—</div></div>
+          </div>
+          <div class="kbd-help">
+            <span><kbd>Space</kbd> pause</span>
+            <span><kbd>R</kbd> reset</span>
+            <span><kbd>A</kbd> auto</span>
+            <span><kbd>↑↓</kbd> channel</span>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>Diagnostics</h3>
+          <div class="diag">
+            <div id="ep-overview" class="endpoint waiting">
+              <span class="ep-dot"></span>
+              <span class="ep-name">overview</span>
+              <span class="ep-state">waiting</span>
+            </div>
+            <div id="ep-live" class="endpoint waiting">
+              <span class="ep-dot"></span>
+              <span class="ep-name">live_streaming</span>
+              <span class="ep-state">waiting</span>
+            </div>
+          </div>
+          <div class="metrics" style="margin-top:8px">
+            <div class="m"><div class="k">overview /s</div><div class="v" id="m-ov-rate">0.0</div></div>
+            <div class="m"><div class="k">live /s</div><div class="v" id="m-lv-rate">0.0</div></div>
+            <div class="m"><div class="k">reconnects</div><div class="v" id="m-recon">0</div></div>
+            <div class="m"><div class="k">mode</div><div class="v" id="m-mode">demo</div></div>
+          </div>
+          <p class="hint" id="diag-hint">Start the simulator or load <code>?demo=1</code> for a browser-only preview.</p>
+          <div class="field btn-row" style="margin-top:12px">
+            <button id="debug-btn" class="btn btn-ghost" type="button">Copy debug</button>
+            <button id="embed-btn" class="btn btn-ghost" type="button">Copy iframe</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>Export</h3>
+          <div class="field btn-row">
+            <button id="csv-btn" class="btn" type="button">
+              <svg class="ic" viewBox="0 0 16 16" fill="none"><path d="M8 1v9m0 0 3-3m-3 3L5 7M2.5 12.5v1A1.5 1.5 0 0 0 4 15h8a1.5 1.5 0 0 0 1.5-1.5v-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              CSV
+            </button>
+            <button id="bundle-btn" class="btn" type="button">
+              <svg class="ic" viewBox="0 0 16 16" fill="none"><path d="M2 4.5 8 1.5l6 3v7L8 14.5l-6-3v-7Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M2 4.5 8 7.5l6-3M8 7.5v7" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+              Bundle
+            </button>
+          </div>
+        </section>
+      </aside>
+
+      <!-- ============ STAGE ============ -->
+      <main class="stage">
+        <article class="panel p-raster">
+          <div class="phead">
+            <div class="ttl">
               <h2>Raster</h2>
-              <p id="raster-readout">Spikes and stims in the rolling window</p>
+              <span class="sub" id="raster-sub">spikes &amp; stims · rolling window</span>
             </div>
-            <span id="fps-text" class="metric">fps unknown</span>
+            <span class="metric" id="fps-text">— fps</span>
           </div>
-          <canvas id="raster-canvas" aria-label="Spike raster"></canvas>
+          <div class="canvas-wrap">
+            <canvas id="raster-canvas" class="viz" aria-label="Spike raster"></canvas>
+            <div class="legend">
+              <i class="lg-spk">spike</i>
+              <i class="lg-stm">stim</i>
+            </div>
+          </div>
         </article>
 
-        <article class="panel heatmap-panel">
-          <div class="panel-head">
-            <div>
-              <h2>MEA heatmap</h2>
-              <p id="heatmap-readout">Recent per-channel activity</p>
-            </div>
-            <span id="channel-count-text" class="metric">0 ch</span>
-          </div>
-          <canvas id="heatmap-canvas" aria-label="MEA heatmap"></canvas>
-        </article>
-
-        <article class="panel waveform-panel">
-          <div class="panel-head">
-            <div>
+        <article class="panel p-wave">
+          <div class="phead">
+            <div class="ttl">
               <h2>Waveforms</h2>
-              <p id="waveform-subtitle">Click a channel</p>
+              <span class="sub" id="wave-sub">select a channel</span>
             </div>
-            <span id="selected-channel-text" class="metric">none</span>
+            <span class="metric" id="wave-ch">ch —</span>
           </div>
-          <canvas id="waveform-canvas" aria-label="Per-channel waveforms"></canvas>
+          <div class="canvas-wrap">
+            <canvas id="waveform-canvas" class="viz" aria-label="Spike waveforms"></canvas>
+          </div>
         </article>
 
-        <article class="panel three-panel">
-          <div class="panel-head">
-            <div>
+        <article class="panel p-heatmap">
+          <div class="phead">
+            <div class="ttl">
+              <h2>MEA heatmap</h2>
+              <span class="sub" id="heat-sub">per-channel activity</span>
+            </div>
+            <span class="metric" id="ch-count">0 ch</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="heatmap-canvas" class="viz" aria-label="MEA heatmap"></canvas>
+            <div class="heat-scale"><span>low</span><span class="ramp"></span><span>high</span></div>
+            <div class="sel-banner" id="heat-banner"></div>
+          </div>
+        </article>
+
+        <article class="panel p-iso">
+          <div class="phead">
+            <div class="ttl">
               <h2>3D MEA array</h2>
-              <p id="three-readout">64-channel activity surface</p>
+              <span class="sub" id="iso-sub">64 electrodes · height &amp; glow show activity</span>
             </div>
-            <span id="three-status-text" class="metric">standby</span>
+            <span class="metric" id="iso-status">8 × 8</span>
           </div>
-          <div id="three-view" class="three-view" role="img" aria-label="3D microelectrode array activity view">
-            <p class="webgl-fallback">Open the 3D array view to initialise WebGL.</p>
+          <div class="canvas-wrap">
+            <canvas id="iso-canvas" class="viz" aria-label="3D microelectrode array"></canvas>
+            <div class="legend">
+              <i class="lg-spk">spike pulse</i>
+              <i class="lg-stm">stim</i>
+            </div>
           </div>
         </article>
-      </section>
-    </main>
+      </main>
+    </div>
+  </div>
 
-    <script type="module" src="./js/main.mjs"></script>
-  </body>
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="./js/app.mjs"></script>
+</body>
 </html>

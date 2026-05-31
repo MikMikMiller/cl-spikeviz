@@ -18,23 +18,22 @@ test("demo mode keeps the default 2D dashboard and does not initialise 3D", asyn
   await withPage("/?demo=1", async ({ page, errors }) => {
     await page.waitForTimeout(800);
 
-    assert.equal(await page.locator("#view-2d-button").getAttribute("aria-pressed"), "true");
-    assert.equal(await page.locator(".three-panel").evaluate((node) => getComputedStyle(node).display), "none");
-    assert.equal(await page.locator("#three-view canvas").count(), 0);
+    assert.equal(await page.locator(".viewtabs button[data-view='2d']").getAttribute("aria-pressed"), "true");
+    assert.equal(await page.locator(".p-iso").evaluate((node) => getComputedStyle(node).display), "none");
+    assert.equal(await page.locator("#iso-canvas").count(), 1);
     assert.equal(await hasHorizontalOverflow(page), false);
     assert.deepEqual(errors, []);
   });
 });
 
-test("3D demo mode renders a WebGL canvas without console errors", async () => {
+test("3D demo mode renders an isometric MEA canvas without console errors", async () => {
   await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
-    await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 10000 });
-    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent));
+    await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
 
-    const box = await page.locator("#three-view").boundingBox();
+    const box = await page.locator("#iso-canvas").boundingBox();
     assert.ok(box.width > 320);
     assert.ok(box.height > 320);
-    assert.equal(await page.locator(".webgl-fallback").count(), 0);
+    assert.equal(await page.locator("#iso-status").textContent(), "8 × 8");
     assert.equal(await hasHorizontalOverflow(page), false);
     assert.deepEqual(errors, []);
   });
@@ -42,12 +41,11 @@ test("3D demo mode renders a WebGL canvas without console errors", async () => {
 
 test("compact split view renders 2D and 3D panels without horizontal overflow", async () => {
   await withPage("/?demo=1&view=split&compact=1", async ({ page, errors }) => {
-    await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 10000 });
-    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent));
+    await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
 
-    assert.equal(await page.locator("#view-split-button").getAttribute("aria-pressed"), "true");
-    assert.equal(await page.locator(".raster-panel").evaluate((node) => getComputedStyle(node).display), "grid");
-    assert.equal(await page.locator(".three-panel").evaluate((node) => getComputedStyle(node).display), "grid");
+    assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("view-split")), true);
+    assert.notEqual(await page.locator(".p-raster").evaluate((node) => getComputedStyle(node).display), "none");
+    assert.notEqual(await page.locator(".p-iso").evaluate((node) => getComputedStyle(node).display), "none");
     assert.equal(await hasHorizontalOverflow(page), false);
     assert.deepEqual(errors, []);
   });
@@ -55,10 +53,9 @@ test("compact split view renders 2D and 3D panels without horizontal overflow", 
 
 test("3D channel selection updates the shared channel query state", async () => {
   await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
-    await page.waitForSelector("#three-view canvas", { state: "visible", timeout: 10000 });
-    await page.waitForFunction(() => !["standby", "loading"].includes(document.querySelector("#three-status-text")?.textContent));
+    await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
 
-    const canvas = page.locator("#three-view canvas");
+    const canvas = page.locator("#iso-canvas");
     await canvas.scrollIntoViewIfNeeded();
     const box = await canvas.boundingBox();
     assert.ok(box, "expected 3D canvas bounds");
@@ -72,7 +69,7 @@ test("3D channel selection updates the shared channel query state", async () => 
 
     const channel = Number(new URL(page.url()).searchParams.get("channel"));
     assert.ok(Number.isInteger(channel) && channel >= 0 && channel < 64);
-    assert.match(await page.locator("#selected-channel-text").textContent(), /^ch \d+$/);
+    assert.match(await page.locator("#wave-ch").textContent(), /^ch \d+$/);
     assert.deepEqual(errors, []);
   });
 });
