@@ -87,12 +87,11 @@ let connection = createConnection();
 el.connect.addEventListener("click", () => {
   config.host = el.host.value.trim() || "127.0.0.1";
   config.port = el.port.value.trim() || "1025";
-  config.demo = false;
   setPaused(false);
   recordHealth(state, "any", "reconnect");
   reconnectWithCurrentMode();
   setQuery();
-  toast(`reconnecting · ${config.host}:${config.port}`);
+  toast(config.demo ? "demo restarted" : `reconnecting · ${config.host}:${config.port}`);
 });
 el.window.addEventListener("input", () => {
   state.windowSeconds = clamp(el.window.value, 1, 10, 5);

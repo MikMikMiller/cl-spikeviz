@@ -26,6 +26,23 @@ test("demo mode keeps the default 2D dashboard and does not initialise 3D", asyn
   });
 });
 
+test("connect button restarts demo mode without switching to live sockets", async () => {
+  await withPage("/?demo=1", async ({ page, errors }) => {
+    await page.waitForTimeout(800);
+
+    const before = await page.locator("#stats-text").textContent();
+    await page.locator("#connect-btn").click();
+    await page.waitForTimeout(800);
+
+    const url = new URL(page.url());
+    assert.equal(url.searchParams.get("demo"), "1");
+    assert.match(await page.locator("#status-text").textContent(), /browser demo/);
+    assert.notEqual(await page.locator("#stats-text").textContent(), before);
+    assert.equal(await page.locator("#m-mode").textContent(), "demo");
+    assert.deepEqual(errors, []);
+  });
+});
+
 test("3D demo mode renders an isometric MEA canvas without console errors", async () => {
   await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
     await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
