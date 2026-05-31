@@ -1,4 +1,4 @@
-// Dependency-free isometric MEA array — no WebGL/Three.js, never fails to load.
+// Dependency-free isometric MEA array; no external 3D runtime required.
 // 8×8 electrodes rise with activity and glow with the brand accent.
 // Spikes/stims emit expanding elliptical ground rings.
 import { setupCanvas } from "./canvas.mjs";

@@ -80,7 +80,7 @@ async function withPage(path, callback) {
   const page = await browser.newPage({ viewport: { width: 1180, height: 900 } });
   const errors = [];
   page.on("console", (message) => {
-    if (["error", "warning"].includes(message.type()) && !isBrowserWebGLNoise(message.text())) {
+    if (["error", "warning"].includes(message.type()) && !isBrowserGpuNoise(message.text())) {
       errors.push(message.text());
     }
   });
@@ -128,7 +128,7 @@ async function hasHorizontalOverflow(page) {
   return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
 }
 
-function isBrowserWebGLNoise(message) {
+function isBrowserGpuNoise(message) {
   return message.includes("GL Driver Message")
     || message.includes("CONTEXT_LOST_WEBGL");
 }

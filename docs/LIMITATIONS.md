@@ -14,14 +14,14 @@
 - The public `cl-sdk` docs describe enabling the WebSocket server, but do not publish a standalone versioned protocol for the two endpoint payload layouts.
 - Parser compatibility is guarded by captured fixtures, a live `cl-sdk` 0.29.0 recapture, and source review for cases that were not emitted during capture.
 - Generic custom data streams are not rendered. Messages with `status` values `new_data`, `attributes_reset`, and `attributes_updated` are ignored.
-- Stim events are parsed when the stream provides `cl_stims`, but current committed captured fixtures may not include stim binary payloads if no stims occurred during capture.
+- Stim events are parsed when the stream provides `cl_stims`, but the binary `cl_stims` layout is source-observed and parser-tested, not live-verified. Neither the committed fixtures nor the 2026-05-31 live recapture contained stim binary payloads, so this requires verification with a stim-producing stream.
 - The app does not send stimulation commands to the simulator.
 
 ## Browser Limits
 
 - Live mode connects from the browser to `ws://<host>:<port>`. Browser mixed-content rules can block `ws://` connections when the app is served over `https://`.
 - GitHub Pages can host demo mode, but live simulator mode usually needs local static hosting or another setup that avoids mixed-content restrictions.
-- WebGL availability depends on browser, GPU, and headless test environment. The 2D dashboard remains the default path.
+- The isometric 3D canvas view is an optional preview surface. The 2D dashboard remains the default path.
 
 ## Data and Rendering Limits
 

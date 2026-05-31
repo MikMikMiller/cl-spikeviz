@@ -1,186 +1,156 @@
 # cl-spikeviz
 
-![status](https://img.shields.io/badge/status-live_dashboard-blue) ![type](https://img.shields.io/badge/type-browsers_visualizer-6a5cff) ![license](https://img.shields.io/badge/license-MIT-brightgreen)
+`cl-spikeviz` is a standalone browser visualizer for Cortical Labs `cl-sdk` simulator streams.
 
-**cl-spikeviz** is a lightweight, browser-based visualizer for Cortical Labs `cl-sdk` stream data.
+It is intentionally small:
 
-It is designed as a no-framework, no-build-step static web application that can run from any simple file server. The project includes a stable 2D dashboard as the production-safe baseline and an experimental Three.js 3D MEA track.
+- static HTML/CSS/JavaScript modules
+- no framework
+- no build pipeline
+- dependency-free 2D and isometric canvas renderers
+- local static hosting and GitHub Pages friendly
 
---- 
+This v0.1 simulator preview is for reviewing stream handling, parser assumptions, and the browser UI around the `cl-sdk` simulator WebSocket output. It does not require CL1 hardware and does not claim support for hardware-only behavior.
 
-## What this project does
+## Reviewer Path
 
-`cl-spikeviz` connects to the simulator WebSocket API and streams neural activity in near real time.
+1. Run the browser demo:
 
-It supports:
+   ```bash
+   npm install
+   python3 -m http.server 8080
+   ```
 
-- **Live mode** from `cl-sdk` simulator endpoints
-- **Demo mode** with local synthetic activity generation
-- **2D dashboard mode** (default, stable)
-- **3D MEA mode** (optional experimental)
-- **Split mode** (2D + 3D simultaneously)
-- Data diagnostics, export, and debug workflows
+   Open `http://127.0.0.1:8080/?demo=1`.
 
----
+2. Run checks:
 
-## Why this project exists
+   ```bash
+   npm test
+   npm run test:ui
+   ```
 
-The goal is to provide a practical lab-style viewer for spike/stim workflows:
+3. Review protocol notes:
 
-- quick situational awareness of MEA activity
-- immediate access to selected-channel waveforms
-- readable activity overlays without sci-fi decoration
-- reproducible behavior in browser screenshots and iframe embeds
+   - [docs/STREAM_PROTOCOL.md](docs/STREAM_PROTOCOL.md)
+   - [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
 
----
+4. Optional live simulator check:
 
-## Core features
+   ```bash
+   uv venv --python 3.12 .venv
+   uv pip install --python .venv/bin/python cl-sdk websockets
+   .venv/bin/python tools/run_simulator.py --seconds 300
+   ```
 
-### Dashboards and visual views
+   In a second terminal:
 
-- **Raster view**: rolling spike/stim activity across channels
-- **MEA heatmap**: compressed channel activity over time
-- **Waveform view**: latest samples for the selected channel
-- **3D MEA array**: 64 electrodes arranged as 8×8 nodes
-- **View switching**: `2D`, `3D`, `split`
+   ```bash
+   python3 -m http.server 8080
+   ```
 
-### State and interaction
+   Open `http://127.0.0.1:8080/?host=127.0.0.1&port=1025`.
 
-- Shared selected channel across all views
-- Hover/click sync from 3D to 2D panels
-- Pause/resume and buffer reset
-- Auto channel mode
-- Debug and export actions
+## Modes
 
-### Controls preserved
+### Demo Mode
 
-- host
-- port
-- window size
-- channel
-- theme
-- pause/resume
-- reset
-- compact view for iframe embedding
+Demo mode uses deterministic browser-generated sample activity. It is useful for UI review, screenshots, and smoke testing without Python or `cl-sdk`.
 
-### Optional tools
+```text
+http://127.0.0.1:8080/?demo=1
+http://127.0.0.1:8080/?demo=1&view=3d
+http://127.0.0.1:8080/?demo=1&view=split&compact=1
+```
 
-- `Copy debug`
-- `Copy iframe`
-- `Export CSV`
-- `Export bundle`
+### Live Simulator Mode
 
----
+Live mode connects to a running `cl-sdk` simulator WebSocket server.
 
-## Repository layout
+The app currently consumes:
 
-This repository root intentionally references the actual app folder:
+- `ws://<host>:<port>/_/ws/overview`
+- `ws://<host>:<port>/_/ws/live_streaming`
 
-- [`cl-spikeviz/`](./cl-spikeviz) — application source and assets
+Public `cl-sdk` documentation describes enabling the simulator WebSocket server with `CL_SDK_WEBSOCKET=1` and configuring host/port with `CL_SDK_WEBSOCKET_HOST` and `CL_SDK_WEBSOCKET_PORT`. The endpoint paths and binary framing are verified against `cl-sdk` 0.29.0 live simulator capture plus committed fixtures; see [docs/STREAM_PROTOCOL.md](docs/STREAM_PROTOCOL.md).
 
-Inside `cl-spikeviz/`:
+## What It Shows
 
-- `index.html` — app shell and controls
-- `css/style.css` — dashboard styling and layout
-- `js/main.mjs` — app orchestration and view state
-- `js/ws.mjs` — WebSocket clients for both streams
-- `js/state.mjs` — shared state model
-- `js/protocol.mjs` — binary protocol decoding
-- `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` — 2D renderers
-- `js/three-view.mjs` — optional Three.js MEA renderer
-- `js/demo.mjs` — demo event generator
-- `tools/run_simulator.py` — simulator bootstrap and install guidance
-- `tools/capture_protocol.py` — protocol capture utility
-- `test/*.test.mjs` — parser and browser smoke tests
-- `vendor/three.module.js` — pinned Three.js bundle for static deployment
+- rolling spike/stim raster
+- per-channel activity heatmap from overview chunks
+- selected-channel waveform samples from `cl_spikes`
+- optional isometric 3D MEA grid view driven by the same parsed stream
+- debug export, CSV export, iframe snippet, and connection health labels
 
----
+The default view is the 2D dashboard. The 3D and split views are preview surfaces for review, not a replacement for the 2D path.
 
-## Quickstart
-
-### 1) Start web server
+## Local Run
 
 ```bash
-cd cl-spikeviz
+npm install
 python3 -m http.server 8080
 ```
 
-### 2) Open in browser
+Then open one of:
 
-- Demo dashboard: `http://127.0.0.1:8080/?demo=1`
-- Demo 3D view: `http://127.0.0.1:8080/?demo=1&view=3d`
-- Demo split view: `http://127.0.0.1:8080/?demo=1&view=split&compact=1`
-- Demo preset with dark theme: `http://127.0.0.1:8080/?demo=1&theme=dark&compact=1`
+- Demo: `http://127.0.0.1:8080/?demo=1`
+- Live simulator: `http://127.0.0.1:8080/?host=127.0.0.1&port=1025`
 
-### 3) Live mode (optional)
+## Simulator Run
 
-Use `tools/run_simulator.py` and keep simulator on port `1025`:
+`tools/run_simulator.py` sets the WebSocket environment variables before calling `cl.open()`:
 
-- `ws://127.0.0.1:1025/_/ws/overview`
-- `ws://127.0.0.1:1025/_/ws/live_streaming`
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python cl-sdk websockets
+.venv/bin/python tools/run_simulator.py --host 127.0.0.1 --port 1025 --seconds 300
+```
 
-Then open:
+Equivalent environment variables:
 
-`http://127.0.0.1:8080/?host=127.0.0.1&port=1025&window=5`
+```bash
+CL_SDK_WEBSOCKET=1
+CL_SDK_WEBSOCKET_HOST=127.0.0.1
+CL_SDK_WEBSOCKET_PORT=1025
+```
 
----
+## URL Parameters
 
-## Query parameters
+- `host` default `127.0.0.1`
+- `port` default `1025`
+- `window` rolling raster window in seconds, 1-10
+- `channel` initial selected channel
+- `theme=dark` or `theme=light`
+- `view=2d`, `view=3d`, or `view=split`
+- `compact=1` for iframe or narrow layouts
+- `demo=1` for deterministic browser demo data. Without `demo=1`, the app attempts live WebSocket mode.
+- `pause=1` to start paused
 
-| Parameter | Description | Default |
-|---|---|---|
-| `host` | Target simulator host | `127.0.0.1` |
-| `port` | Target simulator port | `1025` |
-| `window` | Raster window in seconds | `5` |
-| `channel` | Preselect a channel | first channel |
-| `theme` | `dark` or `light` | `dark` |
-| `view` | `2d`, `3d`, `split` | `2d` |
-| `compact` | Compact layout for embeds (`1` to enable) | `0` |
-| `demo` | Synthetic demo stream (`1` to enable) | disabled |
-| `pause` | Start in paused mode (`1` to enable) | disabled |
+## Repository Layout
 
----
+- `index.html` - app shell, controls, and view containers
+- `css/style.css` - layout and visual styling
+- `js/app.mjs` - app orchestration, mode switching, and view switching
+- `js/ws.mjs` - `cl-sdk` WebSocket client
+- `js/protocol.mjs` - binary parser for overview, spikes, and stims
+- `js/demo.mjs` - deterministic demo stream
+- `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` - 2D renderers
+- `js/iso3d.mjs` - dependency-free isometric canvas renderer
+- `tools/run_simulator.py` - local simulator launcher
+- `tools/capture_protocol.py` - fixture capture utility
+- `test/fixtures/` - captured simulator headers and binary payloads
+- `docs/` - protocol, limitation, and deployment notes
 
-## Live and demo mode behavior
+## 3D View Details
 
-### Demo mode
+The 3D view is a dependency-free isometric canvas renderer in `js/iso3d.mjs`.
 
-- Requires no Python dependencies.
-- Useful for screenshots, CI screenshots, and UI checks.
-- No WebSocket dependency.
-
-### Live mode
-
-- Requires a working `cl-sdk` environment.
-- Data arrives over both `overview` and `live_streaming` channels.
-- State is parsed and propagated to all views from one shared model.
-
----
-
-## Data flow
-
-1. WebSockets connect to both endpoints.
-2. Payloads are parsed by protocol handlers.
-3. `js/state.mjs` accumulates activity windows.
-4. Views (`2D` and `3D`) consume the same state model.
-5. UI controls mutate the same model, so view transitions remain synchronized.
-
----
-
-## 3D view details
-
-The 3D track is intentionally optional and additive.
-
-- 64 electrodes, 8×8 arrangement
-- Channel activity drives height, glow, color intensity
-- Spike/stim events create short-lived pulse visuals
-- Selected channel is highlighted with a clear visual ring/outline
-- Hover and click interact with shared selected channel state
-- WebGL unavailable fallback message is shown instead of failing silently
-- Resize is handled explicitly
-- Pause freezes last visible state
-
----
+- 64 electrodes, 8x8 arrangement
+- channel activity drives height, glow, and color intensity
+- spike/stim events create short-lived pulse visuals
+- selected channel is highlighted with a ring/outline
+- hover and click interact with shared selected channel state
+- no external 3D runtime is required
 
 ## Embedding
 
@@ -198,86 +168,38 @@ Use these URLs directly, or copy generated iframe snippets from the app.
 
 For constrained containers, add `compact=1` and reduce height.
 
----
-
-## Local simulator setup
-
-For reproducible local simulation:
+## Testing
 
 ```bash
-cd cl-spikeviz
-uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python cl-sdk
-.venv/bin/python tools/run_simulator.py --seconds 300
-```
-
-If `cl-sdk` is not available in your Python environment, the simulator helper prints a clear installation message and exits safely.
-
----
-
-## Development and debugging
-
-- Shared state is intentionally centralized to keep 2D and 3D coherent.
-- 3D is lazy-loaded when needed (`view=3d` / `view=split`) and does not replace the 2D MVP.
-- Export and copy tools are designed for quick issue reproduction and support workflows.
-
-### Debug/export actions
-
-- **Copy debug**: compact state snapshot (endpoint status, selected channel, FPS, totals)
-- **Copy iframe**: embed snippet for the current state
-- **Export CSV**: latest event window export
-- **Export bundle**: JSON payload with diagnostics and current buffer summary
-
----
-
-## Commands
-
-```bash
-# install test dependencies
-npm install
-
-# parser + UI smoke checks
 npm test
 npm run test:parse
 npm run test:ui
+npm run test:stress -- --minutes=10
 ```
 
-If Playwright needs a browser runtime:
+Install Playwright Chromium if needed:
 
 ```bash
 npx playwright install chromium
 ```
 
-Capture fixtures from a live run:
+## Capturing Protocol Fixtures
+
+Start the simulator, then run:
 
 ```bash
 python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
 ```
 
----
+The parser tests read `test/fixtures/overview.json`, `test/fixtures/live_streaming.json`, and referenced `.bin` payloads. Commit refreshed fixtures only when they come from a known `cl-sdk` simulator version and the docs are updated with what changed. For ad-hoc verification, capture to a temporary directory such as `/tmp/spikeviz-recapture` and do not commit those files.
 
-## Troubleshooting
+## GitHub Pages
 
-- **`ModuleNotFoundError: No module named 'cl'`**
-  - install `cl-sdk` into the same interpreter used for `tools/run_simulator.py`.
-- **Only one WebSocket is connected**
-  - verify simulator process is healthy and both endpoints are available.
-- **No spikes while connected**
-  - wait for warm-up or inspect subscription/stream timing.
-- **3D panel looks empty**
-  - check browser WebGL support and console output.
-- **UI overflows in embed**
-  - enable `compact=1`.
+The app is static and can be served directly from the repository root. See [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md) for deployment notes and live-mode caveats.
 
----
+## Limitations
 
-## Known limitations and roadmap direction
-
-- 3D mode is experimental and intentionally additive.
-- Design direction is dashboard-first, not decorative.
-- Future work should preserve parser, controls, and endpoint behavior while improving styling and interaction polish.
-
----
+The preview is scoped to `cl-sdk` simulator streams. Unsupported protocol cases, fixture caveats, and browser security constraints are listed in [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 
 ## License
 

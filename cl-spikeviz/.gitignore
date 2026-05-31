@@ -1,7 +1,0 @@
-node_modules/
-.venv/
-.DS_Store
-tmp/
-*.log
-run_simulator.log
-capture_protocol.log

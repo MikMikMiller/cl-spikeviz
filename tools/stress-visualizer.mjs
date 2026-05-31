@@ -246,7 +246,7 @@ async function sampleMetrics(page) {
     const memory = (performance.memory && performance.memory.usedJSHeapSize) || null;
     return {
       fps,
-      status: document.querySelector("#three-status-text")?.textContent || "",
+      status: document.querySelector("#iso-status")?.textContent || "",
       heapUsed: memory,
     };
   });

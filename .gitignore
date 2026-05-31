@@ -1,2 +1,11 @@
 # Repository-local workspace artifacts
 cl-api-doc/
+node_modules/
+.venv/
+.DS_Store
+tmp/
+*.log
+run_simulator.log
+capture_protocol.log
+CL_REVIEW_REQUEST_BUNDLE.md
+PROJECT_REVIEW.md

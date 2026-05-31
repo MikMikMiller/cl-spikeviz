@@ -1,10 +1,10 @@
 # GitHub Pages Notes
 
-`cl-spikeviz` is a static app, so GitHub Pages can serve the app directory contents without a build step.
+`cl-spikeviz` is a static app, so GitHub Pages can serve the repository root without a build step.
 
 ## Recommended Pages Setup
 
-1. Keep this app directory as the published web root.
+1. Keep the app at the repository root.
 2. In GitHub repository settings, enable Pages from the main branch root.
 3. Use demo URLs for public review:
 
