@@ -1,5 +1,7 @@
 # cl-spikeviz
 
+[Open the live demo](https://mikmikmiller.github.io/cl-spikeviz/?demo=1)
+
 `cl-spikeviz` is a standalone browser visualizer for Cortical Labs `cl-sdk` simulator streams.
 
 It is intentionally small:
