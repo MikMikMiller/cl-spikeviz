@@ -16,29 +16,29 @@ This v0.1 simulator preview is for reviewing stream handling, parser assumptions
 
 The captures below were recorded from the Chrome desktop browser using deterministic demo mode.
 
-<table>
+<table width="100%">
   <tr>
-    <th>2D dashboard GIF</th>
-    <th>3D MEA GIF</th>
-    <th>Split view GIF</th>
+    <th width="33%">2D dashboard GIF</th>
+    <th width="33%">3D MEA GIF</th>
+    <th width="33%">Split view GIF</th>
   </tr>
   <tr>
-    <td><img src="assets/chrome-dashboard-demo.gif" width="100%" alt="Animated 2D dashboard browser demo"></td>
-    <td><img src="assets/chrome-3d-demo.gif" width="100%" alt="Animated isometric 3D MEA browser demo"></td>
-    <td><img src="assets/chrome-split-demo.gif" width="100%" alt="Animated split-view browser demo"></td>
+    <td width="33%"><img src="assets/chrome-dashboard-demo.gif" width="100%" alt="Animated 2D dashboard browser demo"></td>
+    <td width="33%"><img src="assets/chrome-3d-demo.gif" width="100%" alt="Animated isometric 3D MEA browser demo"></td>
+    <td width="33%"><img src="assets/chrome-split-demo.gif" width="100%" alt="Animated split-view browser demo"></td>
   </tr>
 </table>
 
-<table>
+<table width="100%">
   <tr>
-    <th>2D dashboard</th>
-    <th>3D MEA view</th>
-    <th>Split view</th>
+    <th width="33%">2D dashboard</th>
+    <th width="33%">3D MEA view</th>
+    <th width="33%">Split view</th>
   </tr>
   <tr>
-    <td><img src="assets/chrome-dashboard-demo.jpg" width="100%" alt="Light theme 2D dashboard screenshot"></td>
-    <td><img src="assets/chrome-3d-demo.jpg" width="100%" alt="Dark theme isometric 3D MEA screenshot"></td>
-    <td><img src="assets/chrome-split-demo.jpg" width="100%" alt="Dark compact split-view screenshot"></td>
+    <td width="33%"><img src="assets/chrome-dashboard-demo.jpg" width="100%" alt="Light theme 2D dashboard screenshot"></td>
+    <td width="33%"><img src="assets/chrome-3d-demo.jpg" width="100%" alt="Dark theme isometric 3D MEA screenshot"></td>
+    <td width="33%"><img src="assets/chrome-split-demo.jpg" width="100%" alt="Dark compact split-view screenshot"></td>
   </tr>
 </table>
 
