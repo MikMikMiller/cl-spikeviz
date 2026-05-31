@@ -13,15 +13,19 @@ It is intentionally small:
 - browser-only recording replay from compact snapshot JSON
 - local static hosting and GitHub Pages friendly
 
-This v0.1 simulator preview is for reviewing stream handling, parser assumptions, recording replay, and the browser UI around the `cl-sdk` simulator WebSocket output. It does not require CL1 hardware and does not claim support for hardware-only behavior.
+This v0.1 simulator preview is for reviewing stream handling, parser assumptions, recording replay, and browser UI behavior around the `cl-sdk` simulator WebSocket output. It does not require CL1 hardware and does not claim support for hardware-only behavior.
 
 ## Browser Preview
 
-The captures below are regenerated from the running app with `npm run capture:assets:live` against a local `cl-sdk` simulator. Each capture waits 10 seconds after the stream starts, then records a short rolling window so the raster, waveform, heatmap, and 3D pulses keep moving.
+The captures below are regenerated from the running app with `npm run capture:assets:live` against a local `cl-sdk` simulator. Each capture waits for stream activity, then records an animated rolling window with channel selection changes so the previews show live UI behavior rather than static screenshots. The default paper theme uses a neutral lab-paper background to keep the media readable on GitHub.
 
 ### Live dashboard
 
 <img src="assets/chrome-dashboard-demo.gif" width="100%" alt="Animated live demo dashboard in Chrome">
+
+### Electrode Grid
+
+<img src="assets/chrome-grid-demo.gif" width="100%" alt="Animated logical electrode grid in Chrome">
 
 ### 3D MEA view
 
@@ -181,11 +185,10 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `port` default `1025`
 - `window` rolling raster window in seconds, 1-10
 - `channel` initial selected channel
-- `theme=dark` or `theme=light`
+- `theme=dark` for the dark theme; omit it for the default paper theme
 - `view=2d`, `view=grid`, `view=3d`, or `view=split`
 - `compact=1` for iframe or narrow layouts
 - `demo=1` for deterministic browser demo data. Without `demo=1`, the app attempts live WebSocket mode.
-- `pause=1` to start paused
 
 ## Repository Layout
 
@@ -261,7 +264,7 @@ npx playwright install chromium
 
 ## Regenerating Preview Media
 
-README media is generated from the running app with Playwright Chromium. The default script uses browser demo mode; the live script connects to a running simulator on `127.0.0.1:1025`. Both scripts wait 10 seconds for stream activity, then record dashboard, 3D, and split views with a short rolling stream window.
+README media is generated from the running app with Playwright Chromium. The default script uses browser demo mode; the live script connects to a running simulator on `127.0.0.1:1025`. Both scripts wait for stream activity, then record dashboard, Electrode Grid, 3D, and split views with a short rolling stream window and channel-selection changes.
 
 ```bash
 npm run capture:assets
@@ -277,6 +280,7 @@ npm run capture:assets:live
 The command updates:
 
 - `assets/chrome-dashboard-demo.gif`
+- `assets/chrome-grid-demo.gif`
 - `assets/chrome-3d-demo.gif`
 - `assets/chrome-split-demo.gif`
 - matching `.jpg` preview frames

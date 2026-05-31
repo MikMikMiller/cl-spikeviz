@@ -1,16 +1,16 @@
 /* ============================================================
    cl-spikeviz — Cortical Labs instrument console
-   "ink on lab paper" — warm bone, warm ink, vermilion accent
+   "ink on lab paper" — neutral lab paper, warm ink, vermilion accent
    ============================================================ */
 
 :root {
   /* ---- paper theme (default) ---- */
-  --bg:            #e6dfd0;
-  --bg-grain:      rgba(23, 20, 14, 0.022);
-  --panel:         #f3eee4;
-  --panel-2:       #ece5d6;
-  --inset:         #e4dccb;   /* canvas plotting bg */
-  --rail:          #efe9dd;
+  --bg:            #e7e8e1;
+  --bg-grain:      rgba(23, 24, 20, 0.02);
+  --panel:         #f4f4ee;
+  --panel-2:       #ecede6;
+  --inset:         #e5e6de;   /* canvas plotting bg */
+  --rail:          #efefea;
 
   --ink:           #1b1710;
   --ink-2:         #4a4338;
@@ -31,10 +31,10 @@
   --bad:           #b23218;
 
   /* heatmap ramp (low -> high) */
-  --heat-0:  #e4dccb;
-  --heat-1:  #e9c9a6;
-  --heat-2:  #e49a63;
-  --heat-3:  #d4602f;
+  --heat-0:  #e5e6de;
+  --heat-1:  #d8d2bf;
+  --heat-2:  #d89a65;
+  --heat-3:  #d45e2f;
   --heat-4:  #9c2c12;
 
   --radius:    3px;
@@ -90,7 +90,7 @@ html, body { height: 100%; }
 body {
   margin: 0;
   background:
-    radial-gradient(120% 120% at 100% 0%, rgba(207,69,36,0.05), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.32), transparent 34%),
     var(--bg);
   color: var(--ink);
   font-family: var(--sans);

@@ -17,11 +17,11 @@ const STREAM_SOURCE = process.env.CAPTURE_SOURCE === "live" ? "live" : "demo";
 const STREAM_HOST = process.env.CAPTURE_HOST || "127.0.0.1";
 const STREAM_PORT = process.env.CAPTURE_PORT || "1025";
 const STREAM_WARMUP_MS = 10_000;
-const GIF_FRAMES = 42;
+const GIF_FRAMES = 54;
 const GIF_INTERVAL_MS = 140;
 const STREAM_WINDOW_SECONDS = 1.5;
 const GIF_COLORS = 256;
-const GIF_PALETTE_SAMPLE_STRIDE = 8;
+const GIF_PALETTE_SAMPLE_STRIDE = 4;
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -184,7 +184,11 @@ async function captureDashboard(browser, baseUrl) {
   const jpgPath = join(ASSETS, "chrome-dashboard-demo.jpg");
 
   await warmupStream(page);
-  await captureTimedGif(page, gifPath, { frames: GIF_FRAMES, interval: GIF_INTERVAL_MS });
+  await captureTimedGif(page, gifPath, {
+    frames: GIF_FRAMES,
+    interval: GIF_INTERVAL_MS,
+    beforeFrame: (frame) => selectChannelSequence(page, frame, [4, 18, 42]),
+  });
   await saveJpeg(page, jpgPath);
   await page.close();
 }
@@ -195,7 +199,26 @@ async function capture3d(browser, baseUrl) {
   const jpgPath = join(ASSETS, "chrome-3d-demo.jpg");
 
   await warmupStream(page);
-  await captureTimedGif(page, gifPath, { frames: GIF_FRAMES, interval: GIF_INTERVAL_MS });
+  await captureTimedGif(page, gifPath, {
+    frames: GIF_FRAMES,
+    interval: GIF_INTERVAL_MS,
+    beforeFrame: (frame) => clickIsoSequence(page, frame, [5, 27, 48]),
+  });
+  await saveJpeg(page, jpgPath);
+  await page.close();
+}
+
+async function captureGrid(browser, baseUrl) {
+  const page = await openPage(browser, streamUrl(baseUrl, "grid"));
+  const gifPath = join(ASSETS, "chrome-grid-demo.gif");
+  const jpgPath = join(ASSETS, "chrome-grid-demo.jpg");
+
+  await warmupStream(page);
+  await captureTimedGif(page, gifPath, {
+    frames: GIF_FRAMES,
+    interval: GIF_INTERVAL_MS,
+    beforeFrame: (frame) => clickGridSequence(page, frame, [0, 21, 45]),
+  });
   await saveJpeg(page, jpgPath);
   await page.close();
 }
@@ -206,7 +229,11 @@ async function captureSplit(browser, baseUrl) {
   const jpgPath = join(ASSETS, "chrome-split-demo.jpg");
 
   await warmupStream(page);
-  await captureTimedGif(page, gifPath, { frames: GIF_FRAMES, interval: GIF_INTERVAL_MS });
+  await captureTimedGif(page, gifPath, {
+    frames: GIF_FRAMES,
+    interval: GIF_INTERVAL_MS,
+    beforeFrame: (frame) => clickIsoSequence(page, frame, [9, 36, 54]),
+  });
   await saveJpeg(page, jpgPath);
   await page.close();
 }
@@ -216,12 +243,84 @@ async function main() {
   const browser = await chromium.launch();
   try {
     await captureDashboard(browser, baseUrl);
+    await captureGrid(browser, baseUrl);
     await capture3d(browser, baseUrl);
     await captureSplit(browser, baseUrl);
   } finally {
     await browser.close();
     await new Promise((resolveClose) => server.close(resolveClose));
   }
+}
+
+async function selectChannelSequence(page, frame, channels) {
+  if (frame % 18 !== 0) {
+    return;
+  }
+  await page.locator("#channel-input").fill(String(channels[(frame / 18) % channels.length]));
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(80);
+}
+
+async function clickGridSequence(page, frame, channels) {
+  if (frame % 18 !== 0) {
+    return;
+  }
+  const target = await gridTarget(page, channels[(frame / 18) % channels.length]);
+  await page.mouse.click(target.x, target.y);
+  await page.waitForTimeout(80);
+}
+
+async function clickIsoSequence(page, frame, channels) {
+  if (frame % 18 !== 0) {
+    return;
+  }
+  const target = await isoTarget(page, channels[(frame / 18) % channels.length]);
+  await page.mouse.click(target.x, target.y);
+  await page.waitForTimeout(80);
+}
+
+async function gridTarget(page, channel) {
+  return page.locator("#electrode-grid-canvas").evaluate((node, ch) => {
+    const rect = node.getBoundingClientRect();
+    const gap = 6;
+    const pad = 22;
+    const footer = 42;
+    const cols = 8;
+    const rows = 8;
+    const cell = Math.max(8, Math.floor(Math.min(
+      (rect.width - pad * 2 - gap * (cols - 1)) / cols,
+      (rect.height - pad * 2 - footer - gap * (rows - 1)) / rows,
+    )));
+    const gridW = cols * cell + (cols - 1) * gap;
+    const gridH = rows * cell + (rows - 1) * gap;
+    const ox = (rect.width - gridW) / 2;
+    const oy = Math.max(pad, (rect.height - footer - gridH) / 2);
+    const col = ch % cols;
+    const row = Math.floor(ch / cols);
+    return {
+      x: rect.left + ox + col * (cell + gap) + cell / 2,
+      y: rect.top + oy + row * (cell + gap) + cell / 2,
+    };
+  }, channel);
+}
+
+async function isoTarget(page, channel) {
+  return page.locator("#iso-canvas").evaluate((node, ch) => {
+    const grid = 8;
+    const rect = node.getBoundingClientRect();
+    const col = ch % grid;
+    const row = Math.floor(ch / grid);
+    const tw = Math.min(rect.width * 0.74 / grid, 86);
+    const th = tw * 0.52;
+    const baseZ = 6;
+    const maxZ = tw * 1.5;
+    const ox = rect.width / 2;
+    const oy = rect.height / 2 - (grid * th) / 2 + th * 1.2;
+    return {
+      x: rect.left + ox + ((col + 0.5) - (row + 0.5)) * (tw / 2),
+      y: rect.top + oy + ((col + 0.5) + (row + 0.5)) * (th / 2) - (baseZ + maxZ * 0.5),
+    };
+  }, channel);
 }
 
 main().catch((error) => {

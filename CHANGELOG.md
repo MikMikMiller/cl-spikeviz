@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-05-31 release media refresh
+
+- Switched the default paper theme to a neutral lab-paper background so README media does not read as pink on GitHub.
+- Added animated Electrode Grid preview media to the README asset set.
+- Regenerated dashboard, Electrode Grid, 3D, and split preview GIF/JPG files from the running app.
+- Updated capture automation so README GIFs include live stream motion plus channel-selection changes.
+- Refreshed GitHub repository metadata for the simulator-stream visualizer positioning.
+
 ## 2026-05-31 recording replay refresh
 
 - Added compact JSON recording replay for browser-only review without Python or a running simulator.
