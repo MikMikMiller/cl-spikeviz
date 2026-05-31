@@ -4,22 +4,22 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 import time
+from os import environ, getenv
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a cl-sdk simulator stream for cl-spikeviz.")
-    parser.add_argument("--host", default=os.getenv("CL_SDK_WEBSOCKET_HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.getenv("CL_SDK_WEBSOCKET_PORT", "1025")))
+    parser.add_argument("--host", default=getenv("CL_SDK_WEBSOCKET_HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(getenv("CL_SDK_WEBSOCKET_PORT", "1025")))
     parser.add_argument("--seconds", type=float, default=300.0)
     parser.add_argument("--ticks-per-second", type=float, default=100.0)
     args = parser.parse_args()
 
-    os.environ["CL_SDK_WEBSOCKET"] = "1"
-    os.environ["CL_SDK_WEBSOCKET_HOST"] = args.host
-    os.environ["CL_SDK_WEBSOCKET_PORT"] = str(args.port)
+    environ["CL_SDK_WEBSOCKET"] = "1"
+    environ["CL_SDK_WEBSOCKET_HOST"] = args.host
+    environ["CL_SDK_WEBSOCKET_PORT"] = str(args.port)
 
     try:
         import cl
@@ -37,8 +37,8 @@ def main() -> None:
         raise SystemExit(1) from exc
 
     replay_path = getattr(cl, "_CL_SDK_REPLAY_PATH", None)
-    if replay_path and "CL_SDK_REPLAY_PATH" not in os.environ:
-        os.environ["CL_SDK_REPLAY_PATH"] = str(replay_path)
+    if replay_path and "CL_SDK_REPLAY_PATH" not in environ:
+        environ["CL_SDK_REPLAY_PATH"] = str(replay_path)
 
     print(f"Starting cl-sdk simulator WebSocket on ws://{args.host}:{args.port}", flush=True)
     with cl.open() as neurons:
