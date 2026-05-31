@@ -18,15 +18,15 @@ The captures below were recorded from the Chrome desktop browser using determini
 
 | 2D dashboard GIF | 3D MEA GIF | Split view GIF |
 | --- | --- | --- |
-| ![Animated 2D dashboard browser demo](assets/preview-dashboard.gif) | ![Animated isometric 3D MEA browser demo](assets/preview-3d.gif) | ![Animated split-view browser demo](assets/preview.gif) |
+| ![Animated 2D dashboard browser demo](assets/chrome-dashboard-demo.gif) | ![Animated isometric 3D MEA browser demo](assets/chrome-3d-demo.gif) | ![Animated split-view browser demo](assets/chrome-split-demo.gif) |
 
 | 2D dashboard | 3D MEA view |
 | --- | --- |
-| ![Light theme 2D dashboard screenshot](assets/screenshot-demo-light.jpg) | ![Dark theme isometric 3D MEA screenshot](assets/screenshot-3d-dark.jpg) |
+| ![Light theme 2D dashboard screenshot](assets/chrome-dashboard-demo.jpg) | ![Dark theme isometric 3D MEA screenshot](assets/chrome-3d-demo.jpg) |
 
 | Compact split view |
 | --- |
-| ![Dark compact split-view screenshot](assets/screenshot-split-compact.jpg) |
+| ![Dark compact split-view screenshot](assets/chrome-split-demo.jpg) |
 
 ## Reviewer Path
 
