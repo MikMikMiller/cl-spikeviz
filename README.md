@@ -14,9 +14,11 @@ This v0.1 simulator preview is for reviewing stream handling, parser assumptions
 
 ## Browser Preview
 
-The captures below were generated from the Chrome desktop browser using deterministic demo mode.
+The captures below were recorded from the Chrome desktop browser using deterministic demo mode.
 
-![Animated split-view browser demo](assets/preview.gif)
+| 2D dashboard GIF | 3D MEA GIF | Split view GIF |
+| --- | --- | --- |
+| ![Animated 2D dashboard browser demo](assets/preview-dashboard.gif) | ![Animated isometric 3D MEA browser demo](assets/preview-3d.gif) | ![Animated split-view browser demo](assets/preview.gif) |
 
 | 2D dashboard | 3D MEA view |
 | --- | --- |
