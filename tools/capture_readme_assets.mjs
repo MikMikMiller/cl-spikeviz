@@ -20,6 +20,8 @@ const STREAM_WARMUP_MS = 10_000;
 const GIF_FRAMES = 42;
 const GIF_INTERVAL_MS = 140;
 const STREAM_WINDOW_SECONDS = 1.5;
+const GIF_COLORS = 256;
+const GIF_PALETTE_SAMPLE_STRIDE = 8;
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -84,18 +86,39 @@ function encodeGif(frames, outPath, { delay = 140 } = {}) {
     throw new Error(`No frames captured for ${outPath}`);
   }
 
+  const palette = createGlobalPalette(frames);
   const gif = GIFEncoder();
   for (const [index, frame] of frames.entries()) {
-    const palette = quantize(frame.data, 128, { format: "rgb444" });
-    const indexed = applyPalette(frame.data, palette, "rgb444");
+    const indexed = applyPalette(frame.data, palette, "rgb565");
     gif.writeFrame(indexed, frame.width, frame.height, {
       delay,
-      palette,
+      palette: index === 0 ? palette : undefined,
       repeat: index === 0 ? 0 : undefined,
     });
   }
   gif.finish();
   writeFileSync(outPath, gif.bytes());
+}
+
+function createGlobalPalette(frames) {
+  const sampledPixels = frames.reduce((total, frame) => (
+    total + Math.ceil((frame.width * frame.height) / GIF_PALETTE_SAMPLE_STRIDE)
+  ), 0);
+  const sample = new Uint8Array(sampledPixels * 4);
+  let offset = 0;
+
+  for (const frame of frames) {
+    for (let pixel = 0; pixel < frame.width * frame.height; pixel += GIF_PALETTE_SAMPLE_STRIDE) {
+      const source = pixel * 4;
+      sample[offset] = frame.data[source];
+      sample[offset + 1] = frame.data[source + 1];
+      sample[offset + 2] = frame.data[source + 2];
+      sample[offset + 3] = frame.data[source + 3];
+      offset += 4;
+    }
+  }
+
+  return quantize(sample.subarray(0, offset), GIF_COLORS, { format: "rgb565" });
 }
 
 async function saveJpeg(page, outPath) {
