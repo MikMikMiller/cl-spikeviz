@@ -14,7 +14,7 @@ This v0.1 simulator preview is for reviewing stream handling, parser assumptions
 
 ## Browser Preview
 
-The captures below were generated from Chrome at a 1440x1000 viewport using deterministic demo mode.
+The captures below were generated from the Chrome desktop browser using deterministic demo mode.
 
 ![Animated split-view browser demo](assets/preview.gif)
 
