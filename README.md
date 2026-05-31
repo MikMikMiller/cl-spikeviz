@@ -12,6 +12,20 @@ It is intentionally small:
 
 This v0.1 simulator preview is for reviewing stream handling, parser assumptions, and the browser UI around the `cl-sdk` simulator WebSocket output. It does not require CL1 hardware and does not claim support for hardware-only behavior.
 
+## Browser Preview
+
+The captures below were generated from Chrome at a 1440x1000 viewport using deterministic demo mode.
+
+![Animated split-view browser demo](assets/preview.gif)
+
+| 2D dashboard | 3D MEA view |
+| --- | --- |
+| ![Light theme 2D dashboard screenshot](assets/screenshot-demo-light.jpg) | ![Dark theme isometric 3D MEA screenshot](assets/screenshot-3d-dark.jpg) |
+
+| Compact split view |
+| --- |
+| ![Dark compact split-view screenshot](assets/screenshot-split-compact.jpg) |
+
 ## Reviewer Path
 
 1. Run the browser demo:
@@ -139,6 +153,7 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `tools/run_simulator.py` - local simulator launcher
 - `tools/capture_protocol.py` - fixture capture utility
 - `test/fixtures/` - captured simulator headers and binary payloads
+- `assets/` - Chrome-captured README screenshots and animated preview
 - `docs/` - protocol, limitation, and deployment notes
 
 ## 3D View Details
