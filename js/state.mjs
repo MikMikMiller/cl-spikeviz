@@ -213,20 +213,84 @@ export function rollingWindowEnd(state) {
   return Math.max(state.windowSeconds, spikeEnd, stimEnd);
 }
 
+export function getChannelWindowMetrics(state) {
+  const channelCount = state.channelCount || 0;
+  const spikeCounts = new Array(channelCount).fill(0);
+  const spikeRates = new Array(channelCount).fill(0);
+  const lastEvents = new Array(channelCount).fill(null);
+  const end = rollingWindowEnd(state);
+  const start = end - state.windowSeconds;
+
+  for (const spike of state.spikes) {
+    if (!isChannelEventInWindow(spike, state, start)) {
+      continue;
+    }
+
+    spikeCounts[spike.channel] += 1;
+    setLastEvent(lastEvents, spike.channel, "spike", spike.seconds);
+  }
+
+  for (const stim of state.stims) {
+    if (!isChannelEventInWindow(stim, state, start)) {
+      continue;
+    }
+
+    setLastEvent(lastEvents, stim.channel, "stim", stim.seconds);
+  }
+
+  const windowSeconds = Math.max(0.001, state.windowSeconds);
+  let maxSpikeRate = 0;
+  let maxSpikeCount = 0;
+  for (let channel = 0; channel < channelCount; channel += 1) {
+    spikeRates[channel] = spikeCounts[channel] / windowSeconds;
+    maxSpikeRate = Math.max(maxSpikeRate, spikeRates[channel]);
+    maxSpikeCount = Math.max(maxSpikeCount, spikeCounts[channel]);
+  }
+
+  return {
+    start,
+    end,
+    spikeCounts,
+    spikeRates,
+    maxSpikeRate,
+    maxSpikeCount,
+    lastEvents,
+  };
+}
+
 export function getChannelStats(state, channel) {
   if (channel === null || channel < 0 || channel >= state.channelCount) {
     return null;
   }
 
   const waveforms = state.waveformsByChannel.get(channel) || [];
+  const metrics = getChannelWindowMetrics(state);
+  const lastEvent = metrics.lastEvents[channel];
   return {
     channel,
     activity: state.channelActivity[channel] || 0,
     hasStim: Boolean(state.channelHasStim[channel]),
     spikeCount: state.channelSpikeCounts[channel] || 0,
+    windowSpikeCount: metrics.spikeCounts[channel] || 0,
+    spikeRateHz: metrics.spikeRates[channel] || 0,
+    lastEventType: lastEvent?.type || null,
+    lastEventSeconds: lastEvent?.seconds ?? null,
     lastSpikeSeconds: state.channelLastSpikeSeconds[channel],
     waveformCount: waveforms.length,
   };
+}
+
+function isChannelEventInWindow(event, state, start) {
+  return event.seconds >= start
+    && event.channel >= 0
+    && event.channel < state.channelCount;
+}
+
+function setLastEvent(lastEvents, channel, type, seconds) {
+  const existing = lastEvents[channel];
+  if (!existing || seconds >= existing.seconds) {
+    lastEvents[channel] = { type, seconds };
+  }
 }
 
 function trimEvents(state) {

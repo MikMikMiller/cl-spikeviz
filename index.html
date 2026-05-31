@@ -49,6 +49,7 @@
 
       <nav class="viewtabs" aria-label="View mode">
         <button data-view="2d" aria-pressed="true" class="is-active">2D dashboard</button>
+        <button data-view="grid" aria-pressed="false">Electrode Grid</button>
         <button data-view="3d" aria-pressed="false">3D array</button>
         <button data-view="split" aria-pressed="false">Split</button>
       </nav>
@@ -242,6 +243,24 @@
             <canvas id="heatmap-canvas" class="viz" aria-label="MEA heatmap"></canvas>
             <div class="heat-scale"><span>low</span><span class="ramp"></span><span>high</span></div>
             <div class="sel-banner" id="heat-banner"></div>
+          </div>
+        </article>
+
+        <article class="panel p-grid">
+          <div class="phead">
+            <div class="ttl">
+              <h2>Electrode Grid</h2>
+              <span class="sub" id="grid-sub">waiting for channel metadata</span>
+            </div>
+            <span class="metric" id="grid-status">0 ch</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="electrode-grid-canvas" class="viz" aria-label="Electrode activity grid"></canvas>
+            <div class="legend grid-legend">
+              <i class="lg-spk">last spike</i>
+              <i class="lg-stm">last stim</i>
+              <span>size = spike rate</span>
+            </div>
           </div>
         </article>
 

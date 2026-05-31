@@ -80,6 +80,7 @@ Demo mode uses deterministic browser-generated sample activity. It is useful for
 
 ```text
 http://127.0.0.1:8080/?demo=1
+http://127.0.0.1:8080/?demo=1&view=grid
 http://127.0.0.1:8080/?demo=1&view=3d
 http://127.0.0.1:8080/?demo=1&view=split&compact=1
 ```
@@ -135,12 +136,13 @@ This is a visualizer snapshot format, not the full HDF5 recording format produce
 
 - rolling spike/stim raster
 - per-channel activity heatmap from overview chunks
+- electrode activity grid with a logical channel layout, last spike/stim color, and rolling spike-rate size
 - selected-channel waveform samples from `cl_spikes`
 - optional isometric 3D MEA grid view driven by the same parsed stream
 - sample recording replay with resettable playback and file drop support
 - debug export, CSV export, iframe snippet, and connection health labels
 
-The default view is the 2D dashboard. The 3D and split views are preview surfaces for review, not a replacement for the 2D path.
+The default view is the 2D dashboard. The Electrode Grid is a logical channel map, not a physical electrode geometry claim. The 3D and split views are preview surfaces for review, not a replacement for the 2D path.
 
 ## Local Run
 
@@ -152,6 +154,7 @@ python3 -m http.server 8080
 Then open one of:
 
 - Demo: `http://127.0.0.1:8080/?demo=1`
+- Electrode Grid demo: `http://127.0.0.1:8080/?demo=1&view=grid`
 - Live simulator: `http://127.0.0.1:8080/?host=127.0.0.1&port=1025`
 
 ## Simulator Run
@@ -179,7 +182,7 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `window` rolling raster window in seconds, 1-10
 - `channel` initial selected channel
 - `theme=dark` or `theme=light`
-- `view=2d`, `view=3d`, or `view=split`
+- `view=2d`, `view=grid`, `view=3d`, or `view=split`
 - `compact=1` for iframe or narrow layouts
 - `demo=1` for deterministic browser demo data. Without `demo=1`, the app attempts live WebSocket mode.
 - `pause=1` to start paused
@@ -193,7 +196,7 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `js/protocol.mjs` - binary parser for overview, spikes, and stims
 - `js/demo.mjs` - deterministic demo stream
 - `js/recording.mjs` - compact snapshot parser and browser replay source
-- `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` - 2D renderers
+- `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs`, `js/electrode-grid.mjs` - 2D renderers
 - `js/iso3d.mjs` - dependency-free isometric canvas renderer
 - `tools/run_simulator.py` - local simulator launcher
 - `tools/capture_protocol.py` - fixture capture utility
@@ -213,6 +216,17 @@ The 3D view is a dependency-free isometric canvas renderer in `js/iso3d.mjs`.
 - selected channel is highlighted with a ring/outline
 - hover and click interact with shared selected channel state
 - no external 3D runtime is required
+
+## Electrode Grid Details
+
+The Electrode Grid view is a dependency-free canvas renderer in `js/electrode-grid.mjs`.
+
+- one cell per channel from the parsed stream
+- color marks the latest visible event as spike or stim
+- cell fill size shows rolling spike rate in the current window
+- idle channels remain visible in a muted neutral state
+- hover and click interact with shared selected channel state
+- non-square channel counts use the closest logical rectangular layout and are not presented as physical MEA geometry
 
 ## Embedding
 

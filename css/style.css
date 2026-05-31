@@ -531,6 +531,7 @@ button:focus-visible,
 .p-raster  { grid-column: 1; grid-row: 1; }
 .p-wave    { grid-column: 1; grid-row: 2; }
 .p-heatmap { grid-column: 2; grid-row: 1 / span 2; }
+.p-grid    { display: none; }
 .p-iso     { display: none; }
 
 .phead {
@@ -539,7 +540,7 @@ button:focus-visible,
   border-bottom: 1px solid var(--line);
   background: var(--panel-2);
 }
-.phead .ttl { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.phead .ttl { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex: 1 1 auto; }
 .phead h2 {
   margin: 0; font-family: var(--mono); font-size: 11px; font-weight: 500;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink); white-space: nowrap;
@@ -566,6 +567,11 @@ canvas.viz   { display: block; width: 100%; height: 100%; }
 .legend i::before { content: ""; width: 8px; height: 8px; border-radius: 1px; }
 .legend .lg-spk::before { background: var(--accent); }
 .legend .lg-stm::before { background: var(--stim); }
+.grid-legend span {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
 
 .heat-scale {
   position: absolute; right: 13px; top: 13px;
@@ -582,13 +588,23 @@ canvas.viz   { display: block; width: 100%; height: 100%; }
 /* view: 3D */
 body.view-3d .p-raster,
 body.view-3d .p-wave,
-body.view-3d .p-heatmap { display: none; }
+body.view-3d .p-heatmap,
+body.view-3d .p-grid { display: none; }
 body.view-3d .stage { grid-template-columns: 1fr; grid-template-rows: 1fr; }
 body.view-3d .p-iso { display: grid; grid-column: 1; grid-row: 1; }
 
+/* view: electrode grid */
+body.view-grid .p-raster,
+body.view-grid .p-wave,
+body.view-grid .p-heatmap,
+body.view-grid .p-iso { display: none; }
+body.view-grid .stage { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+body.view-grid .p-grid { display: grid; grid-column: 1; grid-row: 1; }
+
 /* view: split */
 body.view-split .stage { grid-template-columns: minmax(0, 1fr) minmax(340px, 42%); }
-body.view-split .p-heatmap { display: none; }
+body.view-split .p-heatmap,
+body.view-split .p-grid { display: none; }
 body.view-split .p-iso { display: grid; grid-column: 2; grid-row: 1 / span 2; }
 
 .sel-banner {
@@ -676,6 +692,28 @@ kbd {
   .brand { width: auto; min-width: 0; }
 }
 @media (max-width: 760px) {
+  .cmdbar {
+    height: auto;
+    flex-wrap: wrap;
+  }
+  .brand {
+    min-height: 56px;
+    flex: 1 1 auto;
+  }
+  .cmdbar .live-cluster {
+    display: none;
+  }
+  .viewtabs {
+    order: 2;
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    overflow-x: auto;
+    padding: 6px 12px;
+  }
+  .viewtabs button {
+    flex: 1 0 auto;
+  }
   .stage { grid-template-columns: 1fr; grid-template-rows: repeat(3, minmax(220px, 1fr)); }
   .p-raster  { grid-column: 1; grid-row: 1; }
   .p-wave    { grid-column: 1; grid-row: 3; }

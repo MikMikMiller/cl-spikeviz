@@ -84,6 +84,63 @@ test("3D demo mode renders an isometric MEA canvas without console errors", asyn
   });
 });
 
+test("electrode grid demo mode renders a shareable logical channel view", async () => {
+  await withPage("/?demo=1&view=grid", async ({ page, errors }) => {
+    await page.waitForSelector("#electrode-grid-canvas", { state: "visible", timeout: 10000 });
+
+    assert.equal(await page.locator('button[data-view="grid"]').getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator("#grid-sub").textContent(), /logical 8 × 8 channels/i);
+    const box = await page.locator("#electrode-grid-canvas").boundingBox();
+    assert.ok(box.width > 320);
+    assert.ok(box.height > 320);
+    assert.equal(await hasHorizontalOverflow(page), false);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test("electrode grid handles unknown channel count without crashing", async () => {
+  await withPage("/?view=grid", async ({ page, errors }) => {
+    await page.waitForSelector("#electrode-grid-canvas", { state: "visible", timeout: 10000 });
+
+    assert.equal(await page.locator('button[data-view="grid"]').getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator("#grid-sub").textContent(), /waiting for channel metadata/i);
+    assert.equal(await hasHorizontalOverflow(page), false);
+    assert.deepEqual(errors.filter((message) => !isExpectedMissingSimulatorNoise(message)), []);
+  });
+});
+
+test("electrode grid channel selection updates the shared channel query state", async () => {
+  await withPage("/?demo=1&view=grid", async ({ page, errors }) => {
+    const canvas = page.locator("#electrode-grid-canvas");
+    await canvas.waitFor({ state: "visible", timeout: 10000 });
+
+    const target = await canvas.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const gap = 6;
+      const pad = 22;
+      const footer = 42;
+      const cols = 8;
+      const rows = 8;
+      const cell = Math.max(8, Math.floor(Math.min(
+        (rect.width - pad * 2 - gap * (cols - 1)) / cols,
+        (rect.height - pad * 2 - footer - gap * (rows - 1)) / rows,
+      )));
+      const gridW = cols * cell + (cols - 1) * gap;
+      const gridH = rows * cell + (rows - 1) * gap;
+      const ox = (rect.width - gridW) / 2;
+      const oy = Math.max(pad, (rect.height - footer - gridH) / 2);
+      return { x: ox + cell / 2, y: oy + cell / 2 };
+    });
+
+    await canvas.click({ position: target });
+    await page.waitForFunction(() => new URL(location.href).searchParams.get("channel") === "0");
+
+    assert.equal(new URL(page.url()).searchParams.get("channel"), "0");
+    assert.equal(await page.locator("#m-channel").textContent(), "0");
+    assert.deepEqual(errors, []);
+  });
+});
+
 test("compact split view renders 2D and 3D panels without horizontal overflow", async () => {
   await withPage("/?demo=1&view=split&compact=1", async ({ page, errors }) => {
     await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
@@ -177,4 +234,9 @@ async function hasHorizontalOverflow(page) {
 function isBrowserGpuNoise(message) {
   return message.includes("GL Driver Message")
     || message.includes("CONTEXT_LOST_WEBGL");
+}
+
+function isExpectedMissingSimulatorNoise(message) {
+  return message.includes("WebSocket connection to 'ws://127.0.0.1:1025/_/ws/")
+    && message.includes("ERR_CONNECTION_REFUSED");
 }

@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addSpikes, createState, resetStreamState, setChannelCount } from "../js/state.mjs";
+import {
+  addSpikes,
+  addStims,
+  createState,
+  getChannelStats,
+  getChannelWindowMetrics,
+  resetStreamState,
+  setChannelCount,
+} from "../js/state.mjs";
 
 test("auto channel selection uses current spike batch counts, not stale activity", () => {
   const state = createState({ windowSeconds: 5 });
@@ -47,4 +55,32 @@ test("channel resets clear spike counters and channel selection when requested",
   assert.equal(state.totals.spikes, 0);
   assert.equal(state.channelSpikeCounts[1], 0);
   assert.equal(state.channelLastSpikeSeconds[1], null);
+});
+
+test("channel window metrics report rolling spike rate and latest event type", () => {
+  const state = createState({ windowSeconds: 2 });
+  setChannelCount(state, 3);
+  state.fps = 1000;
+
+  addSpikes(state, [
+    { timestamp: 0n, channel: 1, samples: new Float32Array(75) },
+    { timestamp: 1000n, channel: 1, samples: new Float32Array(75) },
+    { timestamp: 3000n, channel: 2, samples: new Float32Array(75) },
+    { timestamp: 3500n, channel: 2, samples: new Float32Array(75) },
+  ]);
+  addStims(state, [
+    { timestamp: 3600n, channel: 2 },
+  ]);
+
+  const metrics = getChannelWindowMetrics(state);
+  assert.equal(metrics.spikeCounts[1], 0);
+  assert.equal(metrics.spikeCounts[2], 2);
+  assert.equal(metrics.spikeRates[2], 1);
+  assert.equal(metrics.lastEvents[2].type, "stim");
+
+  const stats = getChannelStats(state, 2);
+  assert.equal(stats.windowSpikeCount, 2);
+  assert.equal(stats.spikeRateHz, 1);
+  assert.equal(stats.lastEventType, "stim");
+  assert.equal(stats.lastEventSeconds, 3.6);
 });

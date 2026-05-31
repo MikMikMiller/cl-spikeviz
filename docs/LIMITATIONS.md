@@ -28,6 +28,8 @@
 - Demo mode is deterministic synthetic browser data for UI review only.
 - Recording replay mode consumes a simplified `cl-spikeviz` snapshot JSON, not full HDF5 files from `neurons.record()`.
 - Snapshot replay stores spike/stim events and optional 75-sample spike waveforms. It derives overview activity during playback instead of preserving every original overview chunk.
+- The Electrode Grid view reflects parsed channel activity only: channel index, rolling spike rate, latest spike/stim event, and idle state. It does not show anatomical, motor, cortical-region, or task-specific labels because those labels are not present in the simulator stream.
+- When `channel_count` is not a clean square grid, the Electrode Grid uses the closest logical rectangular layout and labels it as logical rather than physical electrode geometry.
 - The 3D view is an optional preview surface and shares the same parsed event state as the 2D dashboard.
 - The CSV export covers the rolling local event window, not a full simulator recording.
 - Local pause freezes visual state handling; it does not pause the upstream simulator.

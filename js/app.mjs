@@ -4,6 +4,7 @@ import { createRasterView }   from "./raster.mjs";
 import { createHeatmapView }  from "./heatmap.mjs";
 import { createWaveformView } from "./waveforms.mjs";
 import { createIsoView }      from "./iso3d.mjs";
+import { createElectrodeGridView } from "./electrode-grid.mjs";
 import { SpikeVizConnection } from "./ws.mjs";
 import {
   addOverviewChunks, addSpikes, addStims, createState, getChannelStats,
@@ -17,7 +18,7 @@ const config = {
   demo:           params.get("demo")  === "1",
   compact:        params.get("compact") === "1",
   theme:          params.get("theme") === "dark" ? "dark" : "paper",
-  view:           ["3d", "split"].includes(params.get("view")) ? params.get("view") : "2d",
+  view:           ["3d", "split", "grid"].includes(params.get("view")) ? params.get("view") : "2d",
   initialChannel: params.has("channel") ? Number(params.get("channel")) : null,
 };
 
@@ -38,8 +39,9 @@ const el = {
   statusDot: $("status-dot"), statusText: $("status-text"),
   stats: $("stats-text"), rate: $("rate-text"), clock: $("clock-text"),
   fps: $("fps-text"), chCount: $("ch-count"),
-  rasterSub: $("raster-sub"), heatSub: $("heat-sub"), waveSub: $("wave-sub"),
+  rasterSub: $("raster-sub"), heatSub: $("heat-sub"), gridSub: $("grid-sub"), waveSub: $("wave-sub"),
   waveCh: $("wave-ch"), heatBanner: $("heat-banner"), isoSub: $("iso-sub"),
+  gridStatus: $("grid-status"),
   mCh: $("m-channel"), mAct: $("m-activity"), mSpk: $("m-spikes"), mLast: $("m-last"),
   epOverview: $("ep-overview"), epLive: $("ep-live"),
   mOvRate: $("m-ov-rate"), mLvRate: $("m-lv-rate"), mRecon: $("m-recon"), mMode: $("m-mode"),
@@ -69,6 +71,7 @@ const raster   = createRasterView(  $("raster-canvas"),   { onSelectChannel: sel
 const heatmap  = createHeatmapView( $("heatmap-canvas"),  { onSelectChannel: selectChannel, onHoverChannel: hoverChannel });
 const waveform = createWaveformView($("waveform-canvas"));
 const iso      = createIsoView(     $("iso-canvas"),      { onSelectChannel: selectChannel, onHoverChannel: hoverChannel });
+const grid     = createElectrodeGridView($("electrode-grid-canvas"), { onSelectChannel: selectChannel, onHoverChannel: hoverChannel });
 
 const handlers = {
   getConfig: () => config,
@@ -159,12 +162,18 @@ window.addEventListener("drop", handleRecordingDrop);
 
 // ---- render loop ----
 function drawFrame() {
-  if (config.view !== "3d") {
+  if (config.view === "2d" || config.view === "split") {
     raster.draw(state);
     waveform.draw(state);
-    if (config.view === "2d") heatmap.draw(state);
+    if (config.view === "2d") {
+      heatmap.draw(state);
+    }
+  } else if (config.view === "grid") {
+    grid.draw(state);
   }
-  if (config.view !== "2d") iso.draw(state);
+  if (config.view === "3d" || config.view === "split") {
+    iso.draw(state);
+  }
 }
 function render() { drawFrame(); requestAnimationFrame(render); }
 // Keep painting when tab is backgrounded (rAF pauses while hidden).
@@ -212,12 +221,14 @@ function updateLabels() {
   el.fps.textContent    = state.fps ? `${(state.fps / 1000).toFixed(0)}k fps` : "— fps";
   el.chCount.textContent = `${state.channelCount} ch`;
   el.isoSub.textContent  = readout(state.hoveredChannel, "64 electrodes · height & glow show activity");
+  el.gridStatus.textContent = gridStatus();
 
   const sel = state.selectedChannel;
   el.waveCh.textContent  = sel === null ? "ch —" : `ch ${sel}`;
   el.waveSub.textContent = sel === null ? "select a channel" : waveReadout(sel);
   el.rasterSub.textContent = readout(state.hoveredChannel, "spikes & stims · rolling window");
   el.heatSub.textContent   = readout(state.hoveredChannel, "per-channel activity");
+  el.gridSub.textContent    = gridReadout(state.hoveredChannel ?? sel);
 
   const focus = state.hoveredChannel ?? sel;
   const st    = getChannelStats(state, focus);
@@ -243,6 +254,40 @@ function readout(ch, fallback) {
   const st = getChannelStats(state, ch); if (!st) return fallback;
   const last = st.lastSpikeSeconds === null ? "no recent spike" : `last ${st.lastSpikeSeconds.toFixed(2)}s`;
   return `ch ${st.channel} · ${st.spikeCount} spikes · ${Math.round(st.activity * 100)}% · ${last}`;
+}
+function gridReadout(ch) {
+  const st = getChannelStats(state, ch);
+  if (!st) {
+    return gridSummary();
+  }
+  const event = st.hasStim ? "last stim" : st.lastEventType ? `last ${st.lastEventType}` : "no recent event";
+  return `ch ${st.channel} · ${st.windowSpikeCount} spikes in window · ${st.spikeRateHz.toFixed(2)} Hz · ${event}`;
+}
+function gridSummary() {
+  if (!state.channelCount) {
+    return "waiting for channel metadata";
+  }
+  const layout = logicalChannelLayout(state.channelCount);
+  if (layout.isExactSquare) {
+    return `logical ${layout.cols} × ${layout.rows} channels · size shows spike rate`;
+  }
+  return `logical ${layout.cols} × ${layout.rows} layout, not physical electrode geometry`;
+}
+function gridStatus() {
+  if (!state.channelCount) {
+    return "0 ch";
+  }
+  const layout = logicalChannelLayout(state.channelCount);
+  return `${layout.cols} × ${layout.rows}`;
+}
+function logicalChannelLayout(channelCount) {
+  const cols = Math.ceil(Math.sqrt(channelCount));
+  const rows = Math.ceil(channelCount / cols);
+  return {
+    cols,
+    rows,
+    isExactSquare: cols === rows && cols * rows === channelCount,
+  };
 }
 function waveReadout(ch) {
   const st = getChannelStats(state, ch); if (!st) return `last waveforms · ch ${ch}`;
@@ -298,7 +343,7 @@ function applyPreset(p) {
   setQuery(); updateStatus(); updateLabels();
 }
 function setView(view) {
-  config.view = ["3d", "split"].includes(view) ? view : "2d";
+  config.view = ["3d", "split", "grid"].includes(view) ? view : "2d";
   applyViewClass();
   syncViewTabs();
   setQuery();
@@ -313,6 +358,7 @@ function syncViewTabs() {
 function applyViewClass() {
   document.body.classList.toggle("view-3d",    config.view === "3d");
   document.body.classList.toggle("view-split", config.view === "split");
+  document.body.classList.toggle("view-grid",  config.view === "grid");
 }
 function setQuery() {
   const n = new URLSearchParams(location.search);
