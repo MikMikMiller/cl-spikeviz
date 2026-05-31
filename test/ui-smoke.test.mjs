@@ -166,6 +166,28 @@ test("compact split view renders 2D and 3D panels without horizontal overflow", 
     assert.notEqual(await page.locator(".p-raster").evaluate((node) => getComputedStyle(node).display), "none");
     assert.notEqual(await page.locator(".p-iso").evaluate((node) => getComputedStyle(node).display), "none");
     assert.equal(await hasHorizontalOverflow(page), false);
+
+    const canvas = page.locator("#iso-canvas");
+    const target = await canvas.evaluate((node, channel) => {
+      const grid = 8;
+      const rect = node.getBoundingClientRect();
+      const col = channel % grid;
+      const row = Math.floor(channel / grid);
+      const tw = Math.min(rect.width * 0.74 / grid, 86);
+      const th = tw * 0.52;
+      const baseZ = 6;
+      const maxZ = tw * 1.5;
+      const ox = rect.width / 2;
+      const oy = rect.height / 2 - (grid * th) / 2 + th * 1.2;
+      return {
+        x: rect.left + ox + ((col + 0.5) - (row + 0.5)) * (tw / 2),
+        y: rect.top + oy + ((col + 0.5) + (row + 0.5)) * (th / 2) - (baseZ + maxZ * 0.5),
+      };
+    }, 27);
+    await page.mouse.click(target.x, target.y);
+    await page.waitForFunction(() => new URL(location.href).searchParams.has("channel"));
+    const channel = Number(new URL(page.url()).searchParams.get("channel"));
+    assert.ok(Number.isInteger(channel) && channel >= 0 && channel < 64);
     assert.deepEqual(errors, []);
   });
 });

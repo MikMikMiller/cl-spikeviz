@@ -118,7 +118,8 @@ async function runStress() {
         await page.mouse.down();
         await page.mouse.move(viewBox.x + (viewBox.width * 0.25), viewBox.y + (viewBox.height * 0.75));
         await page.mouse.up();
-        await page.mouse.click(viewBox.x + (viewBox.width * 0.5), viewBox.y + (viewBox.height * 0.64));
+        const target = await isoTarget(isoCanvas, 27);
+        await page.mouse.click(target.x, target.y);
         await page.waitForTimeout(80);
         const afterChannel = await page.evaluate(() => {
           const params = new URLSearchParams(location.search);
@@ -256,6 +257,25 @@ async function sampleMetrics(page) {
     heapUsed: sample.heapUsed || null,
     status: sample.status,
   };
+}
+
+async function isoTarget(canvas, channel) {
+  return canvas.evaluate((node, ch) => {
+    const grid = 8;
+    const rect = node.getBoundingClientRect();
+    const col = ch % grid;
+    const row = Math.floor(ch / grid);
+    const tw = Math.min(rect.width * 0.74 / grid, 86);
+    const th = tw * 0.52;
+    const baseZ = 6;
+    const maxZ = tw * 1.5;
+    const ox = rect.width / 2;
+    const oy = rect.height / 2 - (grid * th) / 2 + th * 1.2;
+    return {
+      x: rect.left + ox + ((col + 0.5) - (row + 0.5)) * (tw / 2),
+      y: rect.top + oy + ((col + 0.5) + (row + 0.5)) * (th / 2) - (baseZ + maxZ * 0.5),
+    };
+  }, channel);
 }
 
 function isNoiseMessage(message) {

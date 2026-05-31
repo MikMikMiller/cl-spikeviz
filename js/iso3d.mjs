@@ -33,7 +33,7 @@ export function createIsoView(canvas, { onSelectChannel, onHoverChannel }) {
     let best = null, bestD = 30;
     for (let ch = 0; ch < CHANNELS; ch += 1) {
       const col = ch % GRID, row = Math.floor(ch / GRID);
-      const p = project(layout, col, row, layout.baseZ + padScale[ch] * layout.maxZ);
+      const p = project(layout, col + 0.5, row + 0.5, layout.baseZ + padScale[ch] * layout.maxZ);
       const d = Math.hypot(p.x - mx, p.y - my);
       if (d < bestD) { bestD = d; best = ch; }
     }
