@@ -92,6 +92,42 @@ The app currently consumes:
 
 Public `cl-sdk` documentation describes enabling the simulator WebSocket server with `CL_SDK_WEBSOCKET=1` and configuring host/port with `CL_SDK_WEBSOCKET_HOST` and `CL_SDK_WEBSOCKET_PORT`. The endpoint paths and binary framing are verified against `cl-sdk` 0.29.0 live simulator capture plus committed fixtures; see [docs/STREAM_PROTOCOL.md](docs/STREAM_PROTOCOL.md).
 
+### Recording Replay Mode
+
+Recording replay mode loads a compact `cl-spikeviz` snapshot JSON file in the browser. It does not require Python, the simulator, or hardware during playback. Use the **Load recording** button or drop a snapshot JSON file onto the app window.
+
+The committed sample is available at `assets/sample-recording.json`. In the app, **Load sample** switches from demo/live mode to replay and stops the previous source before playback begins.
+
+Create a snapshot from an existing fixture capture:
+
+```bash
+python3 tools/export_recording.py --fixtures test/fixtures --out assets/sample-recording.json
+```
+
+Create a snapshot while capturing a live simulator stream:
+
+```bash
+.venv/bin/python tools/capture_protocol.py --seconds 5 --out /tmp/spikeviz-capture --recording-out /tmp/sample-recording.json
+```
+
+Snapshot files use this top-level shape:
+
+```json
+{
+  "format": "cl-spikeviz-recording",
+  "version": 1,
+  "frames_per_second": 25000,
+  "channel_count": 64,
+  "duration_ms": 61.08,
+  "events": [
+    { "t_ms": 0, "type": "spike", "channel": 5 },
+    { "t_ms": 2.4, "type": "stim", "channel": 7 }
+  ]
+}
+```
+
+This is a visualizer snapshot format, not the full HDF5 recording format produced by `neurons.record()`. See [docs/STREAM_PROTOCOL.md](docs/STREAM_PROTOCOL.md#recording-snapshot-format) for the exact schema.
+
 ## What It Shows
 
 - rolling spike/stim raster
@@ -152,10 +188,12 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `js/ws.mjs` - `cl-sdk` WebSocket client
 - `js/protocol.mjs` - binary parser for overview, spikes, and stims
 - `js/demo.mjs` - deterministic demo stream
+- `js/recording.mjs` - compact snapshot parser and browser replay source
 - `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` - 2D renderers
 - `js/iso3d.mjs` - dependency-free isometric canvas renderer
 - `tools/run_simulator.py` - local simulator launcher
 - `tools/capture_protocol.py` - fixture capture utility
+- `tools/export_recording.py` - fixture-to-snapshot export utility
 - `test/fixtures/` - captured simulator headers and binary payloads
 - `assets/` - Chrome-captured README screenshots and animated preview
 - `docs/` - protocol, limitation, and deployment notes
@@ -211,6 +249,8 @@ python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
 ```
 
 The parser tests read `test/fixtures/overview.json`, `test/fixtures/live_streaming.json`, and referenced `.bin` payloads. Commit refreshed fixtures only when they come from a known `cl-sdk` simulator version and the docs are updated with what changed. For ad-hoc verification, capture to a temporary directory such as `/tmp/spikeviz-recapture` and do not commit those files.
+
+Add `--recording-out path/to/recording.json` to write a replay snapshot from the same capture.
 
 ## GitHub Pages
 

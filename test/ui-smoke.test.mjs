@@ -43,6 +43,33 @@ test("connect button restarts demo mode without switching to live sockets", asyn
   });
 });
 
+test("sample recording loads and replays through the browser UI", async () => {
+  await withPage("/?demo=1", async ({ page, errors }) => {
+    await page.locator("#sample-recording-btn").click();
+    await page.waitForFunction(() => document.querySelector("#m-mode")?.textContent === "recording");
+    await page.waitForFunction(() => document.querySelector("#stats-text")?.textContent !== "0 spk · 0 stm");
+
+    const url = new URL(page.url());
+    assert.equal(url.searchParams.has("demo"), false);
+    assert.match(await page.locator("#status-text").textContent(), /sample-recording\.json/);
+    assert.match(await page.locator("#recording-hint").textContent(), /sample-recording\.json/);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test("recording reset after playback end replays events from the beginning", async () => {
+  await withPage("/?demo=1", async ({ page, errors }) => {
+    await page.locator("#sample-recording-btn").click();
+    await page.waitForFunction(() => document.querySelector("#status-text")?.textContent?.includes("recording ended"));
+
+    await page.locator("#reset-btn").click();
+    await page.waitForFunction(() => document.querySelector("#stats-text")?.textContent !== "0 spk · 0 stm");
+
+    assert.match(await page.locator("#status-text").textContent(), /recording ended|replaying/);
+    assert.deepEqual(errors, []);
+  });
+});
+
 test("3D demo mode renders an isometric MEA canvas without console errors", async () => {
   await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
     await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });

@@ -1,4 +1,5 @@
 import { DemoStream } from "./demo.mjs";
+import { RecordingReplay, parseRecordingSnapshot, readRecordingFile } from "./recording.mjs";
 import { createRasterView }   from "./raster.mjs";
 import { createHeatmapView }  from "./heatmap.mjs";
 import { createWaveformView } from "./waveforms.mjs";
@@ -6,7 +7,7 @@ import { createIsoView }      from "./iso3d.mjs";
 import { SpikeVizConnection } from "./ws.mjs";
 import {
   addOverviewChunks, addSpikes, addStims, createState, getChannelStats,
-  recordHealth, resetStreamState, setChannelCount,
+  recordHealth, resetHealth, resetStreamState, setChannelCount,
 } from "./state.mjs";
 
 const params = new URLSearchParams(location.search);
@@ -21,6 +22,8 @@ const config = {
 };
 
 const state = createState({ windowSeconds: clamp(params.get("window"), 1, 10, 5) });
+let activeSource = config.demo ? "demo" : "live";
+let activeRecording = null;
 document.body.classList.toggle("dark", config.theme === "dark");
 applyViewClass();
 
@@ -30,6 +33,8 @@ const el = {
   window: $("window-input"), windowOut: $("window-output"),
   pause: $("pause-btn"), reset: $("reset-btn"), auto: $("auto-btn"),
   channel: $("channel-input"), theme: $("theme-input"), presets: $("presets"),
+  recordingInput: $("recording-input"), recordingBtn: $("recording-btn"),
+  sampleRecording: $("sample-recording-btn"), recordingHint: $("recording-hint"),
   statusDot: $("status-dot"), statusText: $("status-text"),
   stats: $("stats-text"), rate: $("rate-text"), clock: $("clock-text"),
   fps: $("fps-text"), chCount: $("ch-count"),
@@ -48,7 +53,7 @@ el.port.value     = config.port;
 el.window.value   = String(state.windowSeconds);
 el.windowOut.textContent = `${state.windowSeconds.toFixed(1)} s`;
 el.theme.value    = config.theme;
-el.mMode.textContent = config.demo ? "demo" : "live";
+el.mMode.textContent = modeLabel();
 
 const startedAt = Date.now();
 
@@ -85,13 +90,20 @@ let connection = createConnection();
 
 // ---- controls ----
 el.connect.addEventListener("click", () => {
+  if (activeSource === "recording") {
+    setPaused(false);
+    connection.reconnect();
+    toast("recording restarted");
+    return;
+  }
+
   config.host = el.host.value.trim() || "127.0.0.1";
   config.port = el.port.value.trim() || "1025";
   setPaused(false);
   recordHealth(state, "any", "reconnect");
   reconnectWithCurrentMode();
   setQuery();
-  toast(config.demo ? "demo restarted" : `reconnecting · ${config.host}:${config.port}`);
+  toast(activeSource === "demo" ? "demo restarted" : `reconnecting · ${config.host}:${config.port}`);
 });
 el.window.addEventListener("input", () => {
   state.windowSeconds = clamp(el.window.value, 1, 10, 5);
@@ -110,8 +122,11 @@ el.theme.addEventListener("change", () => {
   document.body.classList.toggle("dark", config.theme === "dark");
   setQuery();
 });
+el.recordingBtn.addEventListener("click", () => el.recordingInput.click());
+el.recordingInput.addEventListener("change", () => loadRecordingFile(el.recordingInput.files?.[0]));
+el.sampleRecording.addEventListener("click", () => loadSampleRecording());
 el.pause.addEventListener("click",  () => setPaused(!state.paused));
-el.reset.addEventListener("click",  () => { resetStreamState(state); updateLabels(); toast("view reset"); });
+el.reset.addEventListener("click",  () => resetCurrentView());
 el.auto.addEventListener("click",   () => {
   state.autoSelectActive = !state.autoSelectActive;
   if (state.autoSelectActive && state.channelCount) selectChannel(mostActive(), { manual: false });
@@ -131,11 +146,15 @@ window.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
   const k = e.key.toLowerCase();
   if (e.code === "Space")                             { e.preventDefault(); setPaused(!state.paused); }
-  else if (k === "r")                                 { resetStreamState(state); updateLabels(); }
+  else if (k === "r")                                 { resetCurrentView(); }
   else if (k === "a")                                 { el.auto.click(); }
   else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); stepChannel(e.key === "ArrowUp" ? -1 : 1); }
 });
 window.addEventListener("beforeunload", () => connection.disconnect());
+window.addEventListener("dragenter", showRecordingDrop);
+window.addEventListener("dragover", showRecordingDrop);
+window.addEventListener("dragleave", hideRecordingDrop);
+window.addEventListener("drop", handleRecordingDrop);
 
 // ---- render loop ----
 function drawFrame() {
@@ -151,11 +170,15 @@ function render() { drawFrame(); requestAnimationFrame(render); }
 setInterval(() => { if (document.hidden) drawFrame(); }, 250);
 
 // ---- UI helpers ----
-function setPaused(p) {
+function setPaused(p, { syncSource = true } = {}) {
   state.paused = p;
   el.pause.textContent = p ? "Resume" : "Pause";
   el.pause.setAttribute("aria-pressed", String(p));
   el.pause.classList.toggle("is-active", p);
+  if (syncSource && typeof connection.setPaused === "function") {
+    connection.setPaused(p);
+  }
+  updateStatus();
 }
 function updateAutoButton() {
   el.auto.textContent = state.autoSelectActive ? "Auto ✓" : "Auto";
@@ -164,13 +187,20 @@ function updateAutoButton() {
 }
 function updateStatus() {
   const ov = state.connection.overview, lv = state.connection.live;
+  const recording = activeSource === "recording";
+  const ended = ov === "ended" && lv === "ended";
   const live = ov === "live" && lv === "live";
   const err  = ov === "protocol error" || lv === "protocol error";
-  const lbl  = err ? "protocol error" : live ? "live" : (ov === "connecting" || lv === "connecting") ? "connecting" : "waiting";
-  el.statusText.textContent = config.demo ? `${lbl} · browser demo` : `${lbl} · ${config.host}:${config.port}`;
-  el.statusDot.className = `dot ${live ? "live" : err ? "error" : "waiting"}`;
+  const lbl  = err ? "protocol error" : ended ? "ended" : live ? "live" : (ov === "connecting" || lv === "connecting") ? "connecting" : "waiting";
+  if (recording) {
+    const replayState = err ? "recording error" : ended ? "recording ended" : state.paused ? "recording paused" : "replaying";
+    el.statusText.textContent = `${replayState} · ${recordingName()}`;
+  } else {
+    el.statusText.textContent = activeSource === "demo" ? `${lbl} · browser demo` : `${lbl} · ${config.host}:${config.port}`;
+  }
+  el.statusDot.className = `dot ${live && !ended ? "live" : err ? "error" : "waiting"}`;
   setEp(el.epOverview, ov); setEp(el.epLive, lv);
-  el.diagHint.innerHTML = diagHint({ ov, lv, live, err });
+  refreshDiagHint();
 }
 function setEp(node, status) {
   node.className = `endpoint ${String(status).replace(/\s+/g, "-")}`;
@@ -199,7 +229,9 @@ function updateLabels() {
   el.mOvRate.textContent = msgRate(state.health.overviewMessages).toFixed(1);
   el.mLvRate.textContent = msgRate(state.health.liveMessages).toFixed(1);
   el.mRecon.textContent  = String(state.health.reconnects);
+  el.mMode.textContent = modeLabel();
   el.rate.textContent    = `${(msgRate(state.health.overviewMessages) + msgRate(state.health.liveMessages)).toFixed(1)} /s`;
+  refreshDiagHint();
 }
 function tickClock() {
   const s = Math.floor((Date.now() - startedAt) / 1000);
@@ -230,8 +262,18 @@ function stepChannel(d) {
   selectChannel(Math.min(state.channelCount - 1, Math.max(0, cur + d)));
 }
 function msgRate(count) { return count / Math.max(1, (Date.now() - state.health.startedAt) / 1000); }
+function refreshDiagHint() {
+  const ov = state.connection.overview, lv = state.connection.live;
+  const live = ov === "live" && lv === "live";
+  const err = ov === "protocol error" || lv === "protocol error";
+  el.diagHint.innerHTML = diagHint({ ov, lv, live, err });
+}
 function diagHint({ ov, lv, live, err }) {
-  if (config.demo) return "Demo data generated in-browser. Add <code>?demo=0</code> &amp; connect to cl-sdk for live.";
+  if (activeSource === "recording") {
+    if (ov === "ended" && lv === "ended") return "Recording finished. Press <code>R</code> or Reset to replay from the start.";
+    return "Snapshot replay is local to the browser and uses the same parsed event state as live mode.";
+  }
+  if (activeSource === "demo") return "Demo data generated in-browser. Add <code>?demo=0</code> &amp; connect to cl-sdk for live.";
   if (err)  return "Protocol mismatch. Capture fixtures and compare parser offsets.";
   if (live) return state.totals.spikes === 0 ? "Connected · no spikes yet. Check subscription." : "Both endpoints live.";
   if (ov === "live") return "overview connected · live_streaming reconnecting.";
@@ -239,15 +281,19 @@ function diagHint({ ov, lv, live, err }) {
   return "Simulator not running. Start <code>run_simulator.py</code> or use <code>?demo=1</code>.";
 }
 function applyPreset(p) {
-  const previousDemo = config.demo;
-  if (p === "live")    { config.demo = false; config.compact = false; config.theme = "paper"; setView("2d"); }
+  const previousSource = activeSource;
+  if (p === "live")    { activeSource = "live"; activeRecording = null; config.demo = false; config.compact = false; config.theme = "paper"; setView("2d"); }
   else if (p === "compact") { config.compact = true; toast("compact embed mode"); }
-  else if (p === "demo")    { config.demo = true; }
+  else if (p === "demo")    { activeSource = "demo"; activeRecording = null; config.demo = true; }
   else if (p === "paper")   { config.theme = config.theme === "dark" ? "paper" : "dark"; }
   document.body.classList.toggle("dark", config.theme === "dark");
   el.theme.value = config.theme;
-  el.mMode.textContent = config.demo ? "demo" : "live";
-  if (config.demo !== previousDemo) reconnectWithCurrentMode();
+  el.mMode.textContent = modeLabel();
+  if (activeSource !== previousSource) {
+    resetHealth(state);
+    setPaused(false, { syncSource: false });
+    reconnectWithCurrentMode();
+  }
   setQuery(); updateStatus(); updateLabels();
 }
 function setView(view) {
@@ -277,9 +323,15 @@ function setQuery() {
 }
 function debugInfo() {
   return {
-    url: location.href, mode: config.demo ? "demo" : "live",
+    url: location.href, mode: modeLabel(),
     host: config.host, port: config.port, view: config.view,
     windowSeconds: state.windowSeconds, paused: state.paused,
+    recording: activeRecording ? {
+      name: recordingName(),
+      durationMs: activeRecording.durationMs,
+      events: activeRecording.events.length,
+      fileSize: activeRecording.fileSize || null,
+    } : null,
     connection: { ...state.connection }, fps: state.fps,
     channelCount: state.channelCount, selectedChannel: state.selectedChannel,
     totals: { ...state.totals },
@@ -319,7 +371,19 @@ function clamp(v, min, max, fallback) {
 }
 
 function createConnection() {
-  return config.demo ? new DemoStream(handlers) : new SpikeVizConnection(handlers);
+  if (activeSource === "recording" && activeRecording) {
+    return new RecordingReplay({
+      recording: activeRecording,
+      ...handlers,
+      onEnded: () => {
+        setPaused(true, { syncSource: false });
+        toast("recording ended");
+        updateStatus();
+      },
+    });
+  }
+
+  return activeSource === "demo" ? new DemoStream(handlers) : new SpikeVizConnection(handlers);
 }
 
 function reconnectWithCurrentMode() {
@@ -327,6 +391,102 @@ function reconnectWithCurrentMode() {
   connection = createConnection();
   resetStreamState(state, { keepSelection: true });
   connection.connect();
+}
+
+function resetCurrentView() {
+  if (activeSource === "recording" && typeof connection.restart === "function") {
+    const replayEnded = state.connection.overview === "ended" && state.connection.live === "ended";
+    setPaused(replayEnded ? false : state.paused, { syncSource: false });
+    connection.restart({ paused: state.paused });
+    updateLabels();
+    toast("recording reset");
+    return;
+  }
+
+  resetStreamState(state);
+  updateLabels();
+  toast("view reset");
+}
+
+async function loadRecordingFile(file) {
+  if (!file) {
+    return;
+  }
+
+  try {
+    startRecording(await readRecordingFile(file));
+  } catch (error) {
+    showRecordingMessage(`Rejected: ${error.message}`, true);
+    toast("recording rejected");
+  } finally {
+    el.recordingInput.value = "";
+  }
+}
+
+async function loadSampleRecording() {
+  try {
+    const response = await fetch("./assets/sample-recording.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`sample returned HTTP ${response.status}`);
+    const text = await response.text();
+    const recording = parseRecordingSnapshot(text, { name: "sample-recording.json" });
+    recording.fileName = "sample-recording.json";
+    recording.fileSize = text.length;
+    startRecording(recording);
+  } catch (error) {
+    showRecordingMessage(`Sample unavailable: ${error.message}`, true);
+    toast("sample unavailable");
+  }
+}
+
+function startRecording(recording) {
+  activeSource = "recording";
+  activeRecording = recording;
+  config.demo = false;
+  resetHealth(state);
+  setPaused(false, { syncSource: false });
+  reconnectWithCurrentMode();
+  setQuery();
+  showRecordingMessage(`${recordingName()} · ${(recording.durationMs / 1000).toFixed(2)}s · ${recording.events.length} events`);
+  toast("recording loaded");
+}
+
+function showRecordingMessage(message, isError = false) {
+  el.recordingHint.textContent = message;
+  el.recordingHint.classList.toggle("error", isError);
+}
+
+function showRecordingDrop(event) {
+  if (!hasFiles(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+  document.body.classList.add("is-dragging-file");
+}
+
+function hideRecordingDrop(event) {
+  if (!hasFiles(event)) return;
+  event.preventDefault();
+  if (event.type === "dragleave" && event.relatedTarget !== null) return;
+  document.body.classList.remove("is-dragging-file");
+}
+
+function handleRecordingDrop(event) {
+  if (!hasFiles(event)) return;
+  event.preventDefault();
+  document.body.classList.remove("is-dragging-file");
+  const file = Array.from(event.dataTransfer.files).find((item) => item.name.endsWith(".json")) || event.dataTransfer.files[0];
+  loadRecordingFile(file);
+}
+
+function hasFiles(event) {
+  return event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files");
+}
+
+function modeLabel() {
+  return activeSource === "recording" ? "recording" : activeSource === "demo" ? "demo" : "live";
+}
+
+function recordingName() {
+  return activeRecording?.fileName || activeRecording?.name || "recording";
 }
 
 // ---- boot ----

@@ -191,6 +191,58 @@ The app also does not send overview `stimulate` or `reset` actions. Its reset bu
    - capture command
    - whether spike, stim, overview, and custom stream messages were observed
 
+## Recording Snapshot Format
+
+`cl-spikeviz` can also replay a compact JSON snapshot in the browser. This format is owned by this visualizer. It is not the official `cl-sdk` recording format and it does not parse the HDF5 files produced by `neurons.record()`.
+
+Top-level schema:
+
+```json
+{
+  "format": "cl-spikeviz-recording",
+  "version": 1,
+  "frames_per_second": 25000,
+  "channel_count": 64,
+  "duration_ms": 61.08,
+  "events": [
+    { "t_ms": 0, "type": "spike", "channel": 5 },
+    { "t_ms": 2.4, "type": "stim", "channel": 7 }
+  ]
+}
+```
+
+Fields:
+
+- `format` must be `cl-spikeviz-recording`.
+- `version` must be `1`.
+- `frames_per_second` is the frame clock used to convert event times into the same timestamp units as live `cl_spikes` and `cl_stims`.
+- `channel_count` is an integer from 1 to 256.
+- `duration_ms` is the replay duration. It must be greater than or equal to the last event time.
+- `events` is sorted by the browser parser before replay.
+
+Event schema:
+
+- `t_ms` is a non-negative number of milliseconds from the snapshot start. The exporter normalizes live capture timestamps so the first captured event is at `0`.
+- `type` is `spike` or `stim`.
+- `channel` is a zero-based channel index less than `channel_count`.
+- `samples` is optional on spike events. If present, it must contain exactly 75 numeric values, matching `LiveStreamingProtocol.SAMPLES_PER_SPIKE`. If omitted, replay still shows the spike event and uses a flat placeholder waveform.
+
+Replay integration:
+
+- The browser converts `t_ms` to frame timestamps with `Math.round(t_ms / 1000 * frames_per_second)`.
+- Replay calls the same app handlers as demo and live mode: `onOverviewReset`, `onLiveReset`, `onOverviewChunks`, `onSpikes`, and `onStims`.
+- Overview chunks are derived from replay events during playback: spike/stim flags are set per channel, and spike waveform ranges provide the overview min/max values. The snapshot therefore stays compact instead of storing full overview frames.
+
+Export workflows:
+
+```bash
+python3 tools/export_recording.py --fixtures test/fixtures --out assets/sample-recording.json
+```
+
+```bash
+.venv/bin/python tools/capture_protocol.py --seconds 5 --out /tmp/spikeviz-capture --recording-out /tmp/sample-recording.json
+```
+
 ## Parser Assumptions
 
 - Endianness is little-endian, matching current `cl-sdk` NumPy `tobytes()` output on supported local simulator platforms.

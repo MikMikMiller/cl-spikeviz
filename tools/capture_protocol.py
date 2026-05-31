@@ -12,6 +12,8 @@ from typing import Any
 
 import websockets
 
+from export_recording import build_snapshot_from_records, write_snapshot
+
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Capture cl-sdk websocket headers and binary payloads.")
@@ -20,16 +22,19 @@ async def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("test/fixtures"))
     parser.add_argument("--binary-count", type=int, default=3)
     parser.add_argument("--seconds", type=float, default=None, help="Capture for this many seconds instead of stopping only by binary count.")
+    parser.add_argument("--recording-out", type=Path, default=None, help="Also write a compact cl-spikeviz recording snapshot JSON.")
     args = parser.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + args.seconds if args.seconds else None
     overview_task = asyncio.create_task(capture_overview(args.host, args.port, args.out, args.binary_count, deadline))
     live_task = asyncio.create_task(capture_live(args.host, args.port, args.out, args.binary_count, deadline))
-    await asyncio.gather(overview_task, live_task)
+    overview_records, live_records = await asyncio.gather(overview_task, live_task)
+    if args.recording_out:
+        write_snapshot(args.recording_out, build_snapshot_from_records(args.out, overview_records, live_records))
 
 
-async def capture_overview(host: str, port: int, out: Path, binary_count: int, deadline: float | None) -> None:
+async def capture_overview(host: str, port: int, out: Path, binary_count: int, deadline: float | None) -> list[dict[str, Any]]:
     uri = f"ws://{host}:{port}/_/ws/overview"
     records: list[dict[str, Any]] = []
 
@@ -47,9 +52,10 @@ async def capture_overview(host: str, port: int, out: Path, binary_count: int, d
                 records.append({"type": "binary", "file": filename, "bytes": len(message), "hex": message[:32].hex()})
 
     (out / "overview.json").write_text(json.dumps(records, indent=2), encoding="utf-8")
+    return records
 
 
-async def capture_live(host: str, port: int, out: Path, binary_count: int, deadline: float | None) -> None:
+async def capture_live(host: str, port: int, out: Path, binary_count: int, deadline: float | None) -> list[dict[str, Any]]:
     uri = f"ws://{host}:{port}/_/ws/live_streaming"
     records: list[dict[str, Any]] = []
     pending_header: dict[str, Any] | None = None
@@ -81,6 +87,7 @@ async def capture_live(host: str, port: int, out: Path, binary_count: int, deadl
                 pending_header = None
 
     (out / "live_streaming.json").write_text(json.dumps(records, indent=2), encoding="utf-8")
+    return records
 
 
 def should_continue(records: list[dict[str, Any]], binary_count: int, deadline: float | None) -> bool:
