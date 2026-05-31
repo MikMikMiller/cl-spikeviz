@@ -80,29 +80,61 @@ def expand_preview_snapshot(
     target_duration_ms: float,
     cycle_ms: float,
 ) -> dict[str, Any]:
-    """Repeat a short fixture capture into a reviewable sample replay."""
+    """Expand a short fixture capture into a demo-like review sample replay."""
 
     events = snapshot["events"]
     if not events or target_duration_ms <= snapshot["duration_ms"]:
         return snapshot
 
-    base_duration = float(snapshot["duration_ms"])
-    cycle = max(float(cycle_ms), base_duration + 1)
+    spike_templates = [event for event in events if event["type"] == "spike"]
+    if not spike_templates:
+        return snapshot
+
+    fps = int(snapshot["frames_per_second"])
+    channel_count = int(snapshot["channel_count"])
+    cycle = max(float(cycle_ms), 50)
+    chunks_per_cycle = 10
+    frames_per_ms = fps / 1000
     expanded: list[dict[str, Any]] = []
-    offset = 0.0
-    while offset <= target_duration_ms:
-        for event in events:
-            t_ms = normalize_ms(float(event["t_ms"]) + offset)
-            if float(t_ms) > target_duration_ms:
-                continue
-            next_event = dict(event)
-            next_event["t_ms"] = t_ms
-            expanded.append(next_event)
-        offset += cycle
+    tick = 0
+    start_ms = 0.0
+    while start_ms <= target_duration_ms:
+        active_channels = [
+            tick % channel_count,
+            (tick * 7 + 11) % channel_count,
+            (tick * 13 + 5) % channel_count,
+        ]
+        stim_channel = (tick * 5 + 3) % channel_count if tick % 9 == 0 else None
+
+        for chunk in range(chunks_per_cycle):
+            chunk_ms = start_ms + chunk * (cycle / chunks_per_cycle)
+            if stim_channel is not None and chunk == 0 and chunk_ms <= target_duration_ms:
+                expanded.append({
+                    "t_ms": normalize_ms(chunk_ms),
+                    "type": "stim",
+                    "channel": stim_channel,
+                })
+
+            for index, channel in enumerate(active_channels):
+                if (chunk + channel + tick) % 3 == 0:
+                    continue
+                t_ms = normalize_ms(chunk_ms + (channel % 17) / frames_per_ms)
+                if float(t_ms) > target_duration_ms:
+                    continue
+                template = spike_templates[(tick + chunk + index) % len(spike_templates)]
+                expanded.append({
+                    "t_ms": t_ms,
+                    "type": "spike",
+                    "channel": channel,
+                    "samples": template["samples"],
+                })
+
+        tick += 1
+        start_ms += cycle
 
     result = dict(snapshot)
     result["duration_ms"] = normalize_ms(target_duration_ms)
-    result["events"] = expanded
+    result["events"] = sorted(expanded, key=lambda event: (float(event["t_ms"]), 0 if event["type"] == "spike" else 1, event["channel"]))
     return result
 
 

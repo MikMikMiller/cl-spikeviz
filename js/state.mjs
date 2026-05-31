@@ -10,7 +10,7 @@ export function createState({ windowSeconds = 5 } = {}) {
     analysisMs: 5,
     selectedChannel: null,
     hoveredChannel: null,
-    autoSelectActive: false,
+    autoSelectActive: true,
     firstTimestamp: null,
     latestTimestamp: null,
     spikes: [],

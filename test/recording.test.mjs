@@ -111,9 +111,17 @@ test("recording batches flow into the same state handlers as demo and live strea
 
 test("committed sample recording uses the supported snapshot schema", () => {
   const sample = parseRecordingSnapshot(readFileSync(new URL("../assets/sample-recording.json", import.meta.url), "utf8"));
+  const channelsWithEvents = new Set(sample.events.map((event) => event.channel));
+  const typeCounts = sample.events.reduce((counts, event) => {
+    counts[event.type] = (counts[event.type] || 0) + 1;
+    return counts;
+  }, {});
 
   assert.equal(sample.channelCount, 64);
-  assert.ok(sample.durationMs > 0);
-  assert.ok(sample.events.length > 0);
+  assert.ok(sample.durationMs >= 30_000);
+  assert.ok(sample.events.length >= 3_000);
+  assert.ok(channelsWithEvents.size >= 48);
+  assert.ok(typeCounts.spike > 0);
+  assert.ok(typeCounts.stim > 0);
   assert.ok(sample.events.every((event) => event.timestamp >= 0n));
 });

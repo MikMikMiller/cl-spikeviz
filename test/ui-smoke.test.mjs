@@ -43,6 +43,19 @@ test("connect button restarts demo mode without switching to live sockets", asyn
   });
 });
 
+test("selected channel follows automatic activity in demo mode", async () => {
+  await withPage("/?demo=1&view=grid", async ({ page, errors }) => {
+    await page.waitForSelector("#electrode-grid-canvas", { state: "visible", timeout: 10000 });
+    await page.waitForFunction(() => document.querySelector("#channel-input")?.value !== "");
+
+    const selected = Number(await page.locator("#channel-input").inputValue());
+    assert.ok(Number.isInteger(selected) && selected >= 0 && selected < 64);
+    assert.equal(await page.locator("#m-channel").textContent(), String(selected));
+    assert.equal(await page.locator("#auto-btn").getAttribute("aria-pressed"), "true");
+    assert.deepEqual(errors, []);
+  });
+});
+
 test("sample recording loads and replays through the browser UI", async () => {
   await withPage("/?demo=1", async ({ page, errors }) => {
     await page.locator("#sample-recording-btn").click();
@@ -57,7 +70,7 @@ test("sample recording loads and replays through the browser UI", async () => {
   });
 });
 
-test("sample recording stays active long enough to review the electrode grid", async () => {
+test("sample recording stays active and dense enough to review the electrode grid", async () => {
   await withPage("/?demo=1&view=grid", async ({ page, errors }) => {
     await page.locator("#sample-recording-btn").click();
     await page.waitForFunction(() => document.querySelector("#m-mode")?.textContent === "recording");
@@ -66,22 +79,43 @@ test("sample recording stays active long enough to review the electrode grid", a
     assert.equal(await page.locator('button[data-view="grid"]').getAttribute("aria-pressed"), "true");
     assert.match(await page.locator("#status-text").textContent(), /replaying|recording paused/);
     assert.doesNotMatch(await page.locator("#status-text").textContent(), /recording ended/);
-    assert.notEqual(await page.locator("#stats-text").textContent(), "0 spk · 0 stm");
+    assert.match(await page.locator("#recording-hint").textContent(), /30\.00s/);
+    const spikeCount = Number((await page.locator("#stats-text").textContent()).match(/^(\d+)/)?.[1] || 0);
+    assert.ok(spikeCount >= 100);
     assert.equal(await page.locator("#electrode-grid-canvas").isVisible(), true);
     assert.equal(await hasHorizontalOverflow(page), false);
     assert.deepEqual(errors, []);
   });
 });
 
-test("recording reset after playback end replays events from the beginning", async () => {
+test("connect exits sample replay back to the continuous demo stream", async () => {
+  await withPage("/?demo=1&view=grid", async ({ page, errors }) => {
+    await page.locator("#sample-recording-btn").click();
+    await page.waitForFunction(() => document.querySelector("#m-mode")?.textContent === "recording");
+
+    await page.locator("#connect-btn").click();
+    await page.waitForFunction(() => document.querySelector("#m-mode")?.textContent === "demo");
+    await page.waitForTimeout(800);
+
+    const url = new URL(page.url());
+    assert.equal(url.searchParams.get("demo"), "1");
+    assert.match(await page.locator("#status-text").textContent(), /browser demo/);
+    assert.notEqual(await page.locator("#stats-text").textContent(), "0 spk · 0 stm");
+    assert.equal(await page.locator("#electrode-grid-canvas").isVisible(), true);
+    assert.deepEqual(errors, []);
+  });
+});
+
+test("recording reset during playback replays events from the beginning", async () => {
   await withPage("/?demo=1", async ({ page, errors }) => {
     await page.locator("#sample-recording-btn").click();
-    await page.waitForFunction(() => document.querySelector("#status-text")?.textContent?.includes("recording ended"));
+    await page.waitForFunction(() => document.querySelector("#m-mode")?.textContent === "recording");
+    await page.waitForFunction(() => document.querySelector("#stats-text")?.textContent !== "0 spk · 0 stm");
 
     await page.locator("#reset-btn").click();
     await page.waitForFunction(() => document.querySelector("#stats-text")?.textContent !== "0 spk · 0 stm");
 
-    assert.match(await page.locator("#status-text").textContent(), /recording ended|replaying/);
+    assert.match(await page.locator("#status-text").textContent(), /replaying|recording paused/);
     assert.deepEqual(errors, []);
   });
 });
@@ -105,7 +139,7 @@ test("electrode grid demo mode renders a shareable logical channel view", async 
     await page.waitForSelector("#electrode-grid-canvas", { state: "visible", timeout: 10000 });
 
     assert.equal(await page.locator('button[data-view="grid"]').getAttribute("aria-pressed"), "true");
-    assert.match(await page.locator("#grid-sub").textContent(), /logical 8 × 8 channels/i);
+    assert.match(await page.locator("#grid-sub").textContent(), /logical 8 × 8 channels|ch \d+/i);
     const box = await page.locator("#electrode-grid-canvas").boundingBox();
     assert.ok(box.width > 320);
     assert.ok(box.height > 320);

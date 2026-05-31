@@ -1,8 +1,11 @@
 # Changelog
 
-## 2026-05-31 sample replay fix
+## 2026-05-31 sample replay and channel UX fix
 
-- Extended the committed sample recording preview from a 61 ms fixture burst to a five-second review window.
+- Extended the committed sample recording preview from a 61 ms fixture burst to a 30-second demo-like review window.
+- Increased sample density and channel spread so Electrode Grid replay reads closer to the continuous demo stream.
+- Made **Connect** leave sample replay and return to the previous demo/live stream instead of restarting the same recording.
+- Enabled automatic active-channel selection by default and synced the selected-channel input to the current active channel.
 - Added a grid replay regression test so **Load sample** does not immediately land on `recording ended`.
 - Documented the preview expansion flags for regenerating `assets/sample-recording.json`.
 

@@ -23,7 +23,11 @@ const config = {
 };
 
 const state = createState({ windowSeconds: clamp(params.get("window"), 1, 10, 5) });
+if (Number.isInteger(config.initialChannel)) {
+  state.autoSelectActive = false;
+}
 let activeSource = config.demo ? "demo" : "live";
+let sourceBeforeRecording = activeSource;
 let activeRecording = null;
 document.body.classList.toggle("dark", config.theme === "dark");
 applyViewClass();
@@ -31,6 +35,7 @@ applyViewClass();
 const $ = (id) => document.getElementById(id);
 const el = {
   host: $("host-input"), port: $("port-input"), connect: $("connect-btn"),
+  connectLabel: $("connect-label"),
   window: $("window-input"), windowOut: $("window-output"),
   pause: $("pause-btn"), reset: $("reset-btn"), auto: $("auto-btn"),
   channel: $("channel-input"), theme: $("theme-input"), presets: $("presets"),
@@ -95,9 +100,15 @@ let connection = createConnection();
 // ---- controls ----
 el.connect.addEventListener("click", () => {
   if (activeSource === "recording") {
-    setPaused(false);
-    connection.reconnect();
-    toast("recording restarted");
+    activeSource = sourceBeforeRecording;
+    activeRecording = null;
+    config.demo = activeSource === "demo";
+    resetHealth(state);
+    setPaused(false, { syncSource: false });
+    reconnectWithCurrentMode();
+    setQuery();
+    showRecordingMessage("No recording loaded.");
+    toast(activeSource === "demo" ? "demo resumed" : `connecting · ${config.host}:${config.port}`);
     return;
   }
 
@@ -195,6 +206,13 @@ function updateAutoButton() {
   el.auto.setAttribute("aria-pressed", String(state.autoSelectActive));
   el.auto.classList.toggle("is-active", state.autoSelectActive);
 }
+function updateConnectionButton() {
+  if (activeSource === "recording") {
+    el.connectLabel.textContent = sourceBeforeRecording === "demo" ? "Back to demo" : "Connect live";
+  } else {
+    el.connectLabel.textContent = activeSource === "demo" ? "Restart demo" : "Connect live";
+  }
+}
 function updateStatus() {
   const ov = state.connection.overview, lv = state.connection.live;
   const recording = activeSource === "recording";
@@ -210,6 +228,7 @@ function updateStatus() {
   }
   el.statusDot.className = `dot ${live && !ended ? "live" : err ? "error" : "waiting"}`;
   setEp(el.epOverview, ov); setEp(el.epLive, lv);
+  updateConnectionButton();
   refreshDiagHint();
 }
 function setEp(node, status) {
@@ -224,6 +243,7 @@ function updateLabels() {
   el.gridStatus.textContent = gridStatus();
 
   const sel = state.selectedChannel;
+  syncChannelInput(sel);
   el.waveCh.textContent  = sel === null ? "ch —" : `ch ${sel}`;
   el.waveSub.textContent = sel === null ? "select a channel" : waveReadout(sel);
   el.rasterSub.textContent = readout(state.hoveredChannel, "spikes & stims · rolling window");
@@ -244,6 +264,12 @@ function updateLabels() {
   el.mMode.textContent = modeLabel();
   el.rate.textContent    = `${(msgRate(state.health.overviewMessages) + msgRate(state.health.liveMessages)).toFixed(1)} /s`;
   refreshDiagHint();
+}
+function syncChannelInput(channel) {
+  if (document.activeElement === el.channel) {
+    return;
+  }
+  el.channel.value = channel === null ? "" : String(channel);
 }
 function tickClock() {
   const s = Math.floor((Date.now() - startedAt) / 1000);
@@ -332,6 +358,9 @@ function applyPreset(p) {
   else if (p === "compact") { config.compact = true; toast("compact embed mode"); }
   else if (p === "demo")    { activeSource = "demo"; activeRecording = null; config.demo = true; }
   else if (p === "paper")   { config.theme = config.theme === "dark" ? "paper" : "dark"; }
+  if (activeSource !== "recording") {
+    sourceBeforeRecording = activeSource;
+  }
   document.body.classList.toggle("dark", config.theme === "dark");
   el.theme.value = config.theme;
   el.mMode.textContent = modeLabel();
@@ -368,7 +397,7 @@ function setQuery() {
   config.theme === "dark" ? n.set("theme", "dark") : n.delete("theme");
   config.view !== "2d"    ? n.set("view", config.view) : n.delete("view");
   config.compact          ? n.set("compact", "1") : n.delete("compact");
-  state.selectedChannel !== null ? n.set("channel", String(state.selectedChannel)) : n.delete("channel");
+  state.selectedChannel !== null && !state.autoSelectActive ? n.set("channel", String(state.selectedChannel)) : n.delete("channel");
   history.replaceState(null, "", `${location.pathname}?${n.toString()}`);
 }
 function debugInfo() {
@@ -492,9 +521,14 @@ async function loadSampleRecording() {
 }
 
 function startRecording(recording) {
+  if (activeSource !== "recording") {
+    sourceBeforeRecording = activeSource;
+  }
   activeSource = "recording";
   activeRecording = recording;
   config.demo = false;
+  state.autoSelectActive = true;
+  updateAutoButton();
   resetHealth(state);
   setPaused(false, { syncSource: false });
   reconnectWithCurrentMode();
