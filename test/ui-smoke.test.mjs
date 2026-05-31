@@ -140,8 +140,19 @@ test("electrode grid channel selection updates the shared channel query state", 
 
     await page.locator("#reset-btn").click();
     await page.waitForFunction(() => !new URL(location.href).searchParams.has("channel"));
+    await page.waitForTimeout(350);
     assert.equal(new URL(page.url()).searchParams.has("channel"), false);
     assert.equal(await page.locator("#m-channel").textContent(), "—");
+    assert.match(await page.locator("#grid-sub").textContent(), /logical 8 × 8 channels/i);
+
+    await canvas.click({ position: target });
+    await page.waitForFunction(() => new URL(location.href).searchParams.get("channel") === "0");
+    await page.keyboard.press("KeyR");
+    await page.waitForFunction(() => !new URL(location.href).searchParams.has("channel"));
+    await page.waitForTimeout(350);
+    assert.equal(new URL(page.url()).searchParams.has("channel"), false);
+    assert.equal(await page.locator("#m-channel").textContent(), "—");
+    assert.match(await page.locator("#grid-sub").textContent(), /logical 8 × 8 channels/i);
     assert.deepEqual(errors, []);
   });
 });

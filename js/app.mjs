@@ -444,6 +444,8 @@ function reconnectWithCurrentMode() {
 }
 
 function resetCurrentView() {
+  state.hoveredChannel = null;
+
   if (activeSource === "recording" && typeof connection.restart === "function") {
     const replayEnded = state.connection.overview === "ended" && state.connection.live === "ended";
     setPaused(replayEnded ? false : state.paused, { syncSource: false });
