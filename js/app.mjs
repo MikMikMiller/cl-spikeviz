@@ -54,6 +54,7 @@ el.window.value   = String(state.windowSeconds);
 el.windowOut.textContent = `${state.windowSeconds.toFixed(1)} s`;
 el.theme.value    = config.theme;
 el.mMode.textContent = modeLabel();
+syncViewTabs();
 
 const startedAt = Date.now();
 
@@ -299,12 +300,15 @@ function applyPreset(p) {
 function setView(view) {
   config.view = ["3d", "split"].includes(view) ? view : "2d";
   applyViewClass();
+  syncViewTabs();
+  setQuery();
+}
+function syncViewTabs() {
   for (const b of el.viewtabs.querySelectorAll("button[data-view]")) {
     const on = b.dataset.view === config.view;
     b.setAttribute("aria-pressed", String(on));
     b.classList.toggle("is-active", on);
   }
-  setQuery();
 }
 function applyViewClass() {
   document.body.classList.toggle("view-3d",    config.view === "3d");

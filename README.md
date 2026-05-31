@@ -2,7 +2,7 @@
 
 [Open the live demo](https://mikmikmiller.github.io/cl-spikeviz/?demo=1)
 
-`cl-spikeviz` is a standalone browser visualizer for Cortical Labs `cl-sdk` simulator streams.
+`cl-spikeviz` is a standalone browser visualizer for Cortical Labs `cl-sdk` simulator streams and replayable JSON stream snapshots.
 
 It is intentionally small:
 
@@ -10,25 +10,26 @@ It is intentionally small:
 - no framework
 - no build pipeline
 - dependency-free 2D and isometric canvas renderers
+- browser-only recording replay from compact snapshot JSON
 - local static hosting and GitHub Pages friendly
 
-This v0.1 simulator preview is for reviewing stream handling, parser assumptions, and the browser UI around the `cl-sdk` simulator WebSocket output. It does not require CL1 hardware and does not claim support for hardware-only behavior.
+This v0.1 simulator preview is for reviewing stream handling, parser assumptions, recording replay, and the browser UI around the `cl-sdk` simulator WebSocket output. It does not require CL1 hardware and does not claim support for hardware-only behavior.
 
 ## Browser Preview
 
-The captures below were recorded from the Chrome desktop browser using deterministic demo mode.
+The captures below are regenerated from the running app with `npm run capture:assets:live` against a local `cl-sdk` simulator. Each capture waits 10 seconds after the stream starts, then records a short rolling window so the raster, waveform, heatmap, and 3D pulses keep moving.
 
-### 2D dashboard
+### Live dashboard
 
-<img src="assets/chrome-dashboard-demo.gif" width="100%" alt="Animated 2D dashboard browser demo">
+<img src="assets/chrome-dashboard-demo.gif" width="100%" alt="Animated live demo dashboard in Chrome">
 
 ### 3D MEA view
 
-<img src="assets/chrome-3d-demo.gif" width="100%" alt="Animated isometric 3D MEA browser demo">
+<img src="assets/chrome-3d-demo.gif" width="100%" alt="Animated isometric 3D MEA browser demo in Chrome">
 
 ### Split view
 
-<img src="assets/chrome-split-demo.gif" width="100%" alt="Animated split-view browser demo">
+<img src="assets/chrome-split-demo.gif" width="100%" alt="Animated split-view live demo stream in Chrome">
 
 ## Reviewer Path
 
@@ -40,6 +41,8 @@ The captures below were recorded from the Chrome desktop browser using determini
    ```
 
    Open `http://127.0.0.1:8080/?demo=1`.
+
+   To review replay without a simulator, click **Load sample** or drag `assets/sample-recording.json` into the app.
 
 2. Run checks:
 
@@ -96,7 +99,7 @@ Public `cl-sdk` documentation describes enabling the simulator WebSocket server 
 
 Recording replay mode loads a compact `cl-spikeviz` snapshot JSON file in the browser. It does not require Python, the simulator, or hardware during playback. Use the **Load recording** button or drop a snapshot JSON file onto the app window.
 
-The committed sample is available at `assets/sample-recording.json`. In the app, **Load sample** switches from demo/live mode to replay and stops the previous source before playback begins.
+The committed sample is available at `assets/sample-recording.json`. In the app, **Load sample** switches from demo/live mode to replay and stops the previous source before playback begins. Replay uses the same raster, heatmap, waveform, 3D, reset, pause, and channel-selection paths as live data.
 
 Create a snapshot from an existing fixture capture:
 
@@ -134,6 +137,7 @@ This is a visualizer snapshot format, not the full HDF5 recording format produce
 - per-channel activity heatmap from overview chunks
 - selected-channel waveform samples from `cl_spikes`
 - optional isometric 3D MEA grid view driven by the same parsed stream
+- sample recording replay with resettable playback and file drop support
 - debug export, CSV export, iframe snippet, and connection health labels
 
 The default view is the 2D dashboard. The 3D and split views are preview surfaces for review, not a replacement for the 2D path.
@@ -194,8 +198,9 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `tools/run_simulator.py` - local simulator launcher
 - `tools/capture_protocol.py` - fixture capture utility
 - `tools/export_recording.py` - fixture-to-snapshot export utility
+- `tools/capture_readme_assets.mjs` - regenerates README GIF/JPG previews from the running app
 - `test/fixtures/` - captured simulator headers and binary payloads
-- `assets/` - Chrome-captured README screenshots and animated preview
+- `assets/` - browser-captured README screenshots, animated previews, and sample recording JSON
 - `docs/` - protocol, limitation, and deployment notes
 
 ## 3D View Details
@@ -239,6 +244,28 @@ Install Playwright Chromium if needed:
 ```bash
 npx playwright install chromium
 ```
+
+## Regenerating Preview Media
+
+README media is generated from the running app with Playwright Chromium. The default script uses browser demo mode; the live script connects to a running simulator on `127.0.0.1:1025`. Both scripts wait 10 seconds for stream activity, then record dashboard, 3D, and split views with a short rolling stream window.
+
+```bash
+npm run capture:assets
+```
+
+For simulator-backed media:
+
+```bash
+.venv/bin/python tools/run_simulator.py --seconds 300
+npm run capture:assets:live
+```
+
+The command updates:
+
+- `assets/chrome-dashboard-demo.gif`
+- `assets/chrome-3d-demo.gif`
+- `assets/chrome-split-demo.gif`
+- matching `.jpg` preview frames
 
 ## Capturing Protocol Fixtures
 

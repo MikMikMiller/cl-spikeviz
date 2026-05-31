@@ -4,12 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "capture:assets": "node tools/capture_readme_assets.mjs",
+    "capture:assets:live": "CAPTURE_SOURCE=live node tools/capture_readme_assets.mjs",
     "test": "node --test test/*.test.mjs",
     "test:parse": "node --test test/parse.test.mjs",
     "test:ui": "node --test test/ui-smoke.test.mjs",
     "test:stress": "node tools/stress-visualizer.mjs"
   },
   "devDependencies": {
-    "playwright": "^1.60.0"
+    "gifenc": "^1.0.3",
+    "playwright": "^1.60.0",
+    "pngjs": "^7.0.0"
   }
 }

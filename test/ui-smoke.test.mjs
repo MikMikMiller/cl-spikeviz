@@ -74,6 +74,7 @@ test("3D demo mode renders an isometric MEA canvas without console errors", asyn
   await withPage("/?demo=1&view=3d", async ({ page, errors }) => {
     await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
 
+    assert.equal(await page.locator('button[data-view="3d"]').getAttribute("aria-pressed"), "true");
     const box = await page.locator("#iso-canvas").boundingBox();
     assert.ok(box.width > 320);
     assert.ok(box.height > 320);
@@ -88,6 +89,7 @@ test("compact split view renders 2D and 3D panels without horizontal overflow", 
     await page.waitForSelector("#iso-canvas", { state: "visible", timeout: 10000 });
 
     assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("view-split")), true);
+    assert.equal(await page.locator('button[data-view="split"]').getAttribute("aria-pressed"), "true");
     assert.notEqual(await page.locator(".p-raster").evaluate((node) => getComputedStyle(node).display), "none");
     assert.notEqual(await page.locator(".p-iso").evaluate((node) => getComputedStyle(node).display), "none");
     assert.equal(await hasHorizontalOverflow(page), false);

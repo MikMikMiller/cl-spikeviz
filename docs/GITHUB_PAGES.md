@@ -13,7 +13,9 @@
    https://<user>.github.io/<repo>/?demo=1&view=split&compact=1
    ```
 
-4. Document that live simulator mode is best tested from local static hosting:
+4. Use **Load sample** on the hosted page to review recording replay without Python or a running simulator. The sample file is served from `assets/sample-recording.json`.
+
+5. Document that live simulator mode is best tested from local static hosting:
 
    ```bash
    python3 -m http.server 8080
@@ -28,6 +30,8 @@
 GitHub Pages is served over HTTPS. Browsers commonly block insecure `ws://` connections from an HTTPS page. The `cl-sdk` simulator WebSocket server is configured as plain `ws://` in the current public docs/source, so local hosting is the expected reviewer path for live simulator testing.
 
 Demo mode works on GitHub Pages because it does not open WebSocket connections.
+
+Recording replay mode also works on GitHub Pages because snapshots are loaded locally in the browser and the committed sample is a static JSON asset.
 
 ## Embed Path
 
