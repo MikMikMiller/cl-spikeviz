@@ -9,8 +9,9 @@ Checked on 2026-05-31:
 - Public docs: `docs.corticallabs.com` and the `cl-sdk` README document enabling the simulator WebSocket server with `CL_SDK_WEBSOCKET=1`, `CL_SDK_WEBSOCKET_HOST`, and `CL_SDK_WEBSOCKET_PORT`.
 - Public source: `Cortical-Labs/cl-sdk` commit `fea6277edd3169bdad4a46f0e1eadab3729058e7`.
 - Local fixtures: `test/fixtures/overview.json`, `test/fixtures/live_streaming.json`, and referenced `.bin` payloads captured from a `cl-sdk` simulator run.
+- Live verification: local `cl-sdk` package version `0.29.0`, installed at `.venv/lib/python3.12/site-packages/cl`, launched with `tools/run_simulator.py --seconds 120 --host 127.0.0.1 --port 1025`, and recaptured for 10 seconds to `/tmp/spikeviz-recapture`.
 
-The public docs do not describe the `/_/ws/overview` and `/_/ws/live_streaming` payload layouts. Those endpoint paths and frame formats are source-observed from `src/cl/visualisation/_websocket_subprocess.py`, `src/cl/visualisation/web/analysis.mjs`, `src/cl/visualisation/web/engine.mjs`, and `src/cl/visualisation/_http_server.py`.
+The public docs do not describe the `/_/ws/overview` and `/_/ws/live_streaming` payload layouts. Those endpoint paths and frame formats are source-observed from `src/cl/visualisation/_websocket_subprocess.py`, `src/cl/visualisation/web/analysis.mjs`, `src/cl/visualisation/web/engine.mjs`, and `src/cl/visualisation/_http_server.py`, then checked against the live capture above.
 
 ## WebSocket Setup
 
@@ -33,6 +34,8 @@ CL_SDK_WEBSOCKET_PORT=1025
 ### `/_/ws/overview`
 
 Purpose: low-rate overview chunks for heatmap/raster context.
+
+Verification status: verified against live `cl-sdk` 0.29.0 capture and committed fixtures.
 
 Initial text message:
 
@@ -85,6 +88,8 @@ Parser behavior:
 
 Purpose: subscribed live stream events for spikes, stims, and custom data streams.
 
+Verification status: `reset` and `cl_spikes` messages verified against live `cl-sdk` 0.29.0 capture and committed fixtures. `cl_stims` parsing remains source-observed plus parser-tested because no stim payload occurred during the live recapture or committed fixtures.
+
 Initial text message:
 
 ```json
@@ -136,7 +141,7 @@ channels:   stim_count * uint8
 padding:    enough bytes to align the payload to an 8-byte boundary in current cl-sdk source
 ```
 
-`cl-spikeviz` parses the timestamp and channel sections and tolerates trailing padding.
+`cl-spikeviz` parses the timestamp and channel sections and tolerates trailing padding. This layout is source-observed and covered by parser tests; it still needs a live capture containing `cl_stims` before it can be marked live-verified.
 
 ## Unsupported Cases
 

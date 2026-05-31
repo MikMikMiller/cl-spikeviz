@@ -72,7 +72,7 @@ The app currently consumes:
 - `ws://<host>:<port>/_/ws/overview`
 - `ws://<host>:<port>/_/ws/live_streaming`
 
-Public `cl-sdk` documentation describes enabling the simulator WebSocket server with `CL_SDK_WEBSOCKET=1` and configuring host/port with `CL_SDK_WEBSOCKET_HOST` and `CL_SDK_WEBSOCKET_PORT`. The endpoint paths and binary framing are verified from the public `Cortical-Labs/cl-sdk` source and captured simulator fixtures; see [docs/STREAM_PROTOCOL.md](docs/STREAM_PROTOCOL.md).
+Public `cl-sdk` documentation describes enabling the simulator WebSocket server with `CL_SDK_WEBSOCKET=1` and configuring host/port with `CL_SDK_WEBSOCKET_HOST` and `CL_SDK_WEBSOCKET_PORT`. The endpoint paths and binary framing are verified against `cl-sdk` 0.29.0 live simulator capture plus committed fixtures; see [docs/STREAM_PROTOCOL.md](docs/STREAM_PROTOCOL.md).
 
 ## What It Shows
 
@@ -124,19 +124,19 @@ CL_SDK_WEBSOCKET_PORT=1025
 - `theme=dark` or `theme=light`
 - `view=2d`, `view=3d`, or `view=split`
 - `compact=1` for iframe or narrow layouts
-- `demo=1` for deterministic browser demo data
+- `demo=1` for deterministic browser demo data. Without `demo=1`, the app attempts live WebSocket mode.
 - `pause=1` to start paused
 
 ## Repository Layout
 
 - `index.html` - app shell, controls, and view containers
 - `css/style.css` - layout and visual styling
-- `js/main.mjs` - app orchestration and view switching
+- `js/app.mjs` - app orchestration, mode switching, and view switching
 - `js/ws.mjs` - `cl-sdk` WebSocket client
 - `js/protocol.mjs` - binary parser for overview, spikes, and stims
 - `js/demo.mjs` - deterministic demo stream
 - `js/raster.mjs`, `js/heatmap.mjs`, `js/waveforms.mjs` - 2D renderers
-- `js/three-view.mjs` - optional 3D renderer
+- `js/iso3d.mjs` - optional 3D renderer
 - `tools/run_simulator.py` - local simulator launcher
 - `tools/capture_protocol.py` - fixture capture utility
 - `test/fixtures/` - captured simulator headers and binary payloads
@@ -165,11 +165,11 @@ Start the simulator, then run:
 python3 tools/capture_protocol.py --seconds 5 --out test/fixtures
 ```
 
-The parser tests read `test/fixtures/overview.json`, `test/fixtures/live_streaming.json`, and referenced `.bin` payloads. Commit refreshed fixtures only when they come from a known `cl-sdk` simulator version and the docs are updated with what changed.
+The parser tests read `test/fixtures/overview.json`, `test/fixtures/live_streaming.json`, and referenced `.bin` payloads. Commit refreshed fixtures only when they come from a known `cl-sdk` simulator version and the docs are updated with what changed. For ad-hoc verification, capture to a temporary directory such as `/tmp/spikeviz-recapture` and do not commit those files.
 
 ## GitHub Pages
 
-The app is static and can be served directly from the repository root. See [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md) for deployment notes and live-mode caveats.
+The app is static and can be served directly from this app directory as the web root. See [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md) for deployment notes and live-mode caveats.
 
 ## Limitations
 

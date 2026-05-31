@@ -3,6 +3,7 @@ import { createRasterView }   from "./raster.mjs";
 import { createHeatmapView }  from "./heatmap.mjs";
 import { createWaveformView } from "./waveforms.mjs";
 import { createIsoView }      from "./iso3d.mjs";
+import { SpikeVizConnection } from "./ws.mjs";
 import {
   addOverviewChunks, addSpikes, addStims, createState, getChannelStats,
   recordHealth, resetStreamState, setChannelCount,
@@ -12,7 +13,7 @@ const params = new URLSearchParams(location.search);
 const config = {
   host:           params.get("host")  || "127.0.0.1",
   port:           params.get("port")  || "1025",
-  demo:           params.get("demo")  !== "0",
+  demo:           params.get("demo")  === "1",
   compact:        params.get("compact") === "1",
   theme:          params.get("theme") === "dark" ? "dark" : "paper",
   view:           ["3d", "split"].includes(params.get("view")) ? params.get("view") : "2d",
@@ -80,14 +81,17 @@ const handlers = {
   onStatus: (kind, value) => { state.connection[kind] = value; updateStatus(); },
   onHealth: (kind, ev)    => { recordHealth(state, kind, ev); },
 };
-let connection = new DemoStream(handlers);
+let connection = createConnection();
 
 // ---- controls ----
 el.connect.addEventListener("click", () => {
   config.host = el.host.value.trim() || "127.0.0.1";
   config.port = el.port.value.trim() || "1025";
-  setPaused(false); recordHealth(state, "any", "reconnect");
-  connection.reconnect();
+  config.demo = false;
+  setPaused(false);
+  recordHealth(state, "any", "reconnect");
+  reconnectWithCurrentMode();
+  setQuery();
   toast(`reconnecting · ${config.host}:${config.port}`);
 });
 el.window.addEventListener("input", () => {
@@ -236,6 +240,7 @@ function diagHint({ ov, lv, live, err }) {
   return "Simulator not running. Start <code>run_simulator.py</code> or use <code>?demo=1</code>.";
 }
 function applyPreset(p) {
+  const previousDemo = config.demo;
   if (p === "live")    { config.demo = false; config.compact = false; config.theme = "paper"; setView("2d"); }
   else if (p === "compact") { config.compact = true; toast("compact embed mode"); }
   else if (p === "demo")    { config.demo = true; }
@@ -243,6 +248,7 @@ function applyPreset(p) {
   document.body.classList.toggle("dark", config.theme === "dark");
   el.theme.value = config.theme;
   el.mMode.textContent = config.demo ? "demo" : "live";
+  if (config.demo !== previousDemo) reconnectWithCurrentMode();
   setQuery(); updateStatus(); updateLabels();
 }
 function setView(view) {
@@ -263,6 +269,7 @@ function setQuery() {
   const n = new URLSearchParams(location.search);
   n.set("host", config.host); n.set("port", config.port);
   n.set("window", String(state.windowSeconds));
+  config.demo             ? n.set("demo", "1") : n.delete("demo");
   config.theme === "dark" ? n.set("theme", "dark") : n.delete("theme");
   config.view !== "2d"    ? n.set("view", config.view) : n.delete("view");
   config.compact          ? n.set("compact", "1") : n.delete("compact");
@@ -310,6 +317,17 @@ function clamp(v, min, max, fallback) {
   if (v === null || v === undefined || v === "") return fallback;
   const n = Number(v); if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
+}
+
+function createConnection() {
+  return config.demo ? new DemoStream(handlers) : new SpikeVizConnection(handlers);
+}
+
+function reconnectWithCurrentMode() {
+  connection.disconnect();
+  connection = createConnection();
+  resetStreamState(state, { keepSelection: true });
+  connection.connect();
 }
 
 // ---- boot ----

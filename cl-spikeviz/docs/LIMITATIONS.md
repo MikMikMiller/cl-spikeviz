@@ -5,14 +5,14 @@
 ## Scope
 
 - Targets browser visualization of `cl-sdk` simulator WebSocket streams.
-- Uses the current source-observed `/_/ws/overview` and `/_/ws/live_streaming` endpoints.
+- Uses the current live-verified `/_/ws/overview` and `/_/ws/live_streaming` endpoints for simulator overview and `cl_spikes` payloads.
 - Does not require CL1 hardware.
 - Does not assume access to hardware-only behavior.
 
 ## Protocol Limits
 
 - The public `cl-sdk` docs describe enabling the WebSocket server, but do not publish a standalone versioned protocol for the two endpoint payload layouts.
-- Parser compatibility is guarded by captured fixtures and source review.
+- Parser compatibility is guarded by captured fixtures, a live `cl-sdk` 0.29.0 recapture, and source review for cases that were not emitted during capture.
 - Generic custom data streams are not rendered. Messages with `status` values `new_data`, `attributes_reset`, and `attributes_updated` are ignored.
 - Stim events are parsed when the stream provides `cl_stims`, but current committed captured fixtures may not include stim binary payloads if no stims occurred during capture.
 - The app does not send stimulation commands to the simulator.
