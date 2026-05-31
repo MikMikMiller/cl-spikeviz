@@ -455,6 +455,7 @@ function resetCurrentView() {
 
   resetStreamState(state);
   updateLabels();
+  setQuery();
   toast("view reset");
 }
 

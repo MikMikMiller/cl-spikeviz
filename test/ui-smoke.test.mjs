@@ -137,6 +137,11 @@ test("electrode grid channel selection updates the shared channel query state", 
 
     assert.equal(new URL(page.url()).searchParams.get("channel"), "0");
     assert.equal(await page.locator("#m-channel").textContent(), "0");
+
+    await page.locator("#reset-btn").click();
+    await page.waitForFunction(() => !new URL(location.href).searchParams.has("channel"));
+    assert.equal(new URL(page.url()).searchParams.has("channel"), false);
+    assert.equal(await page.locator("#m-channel").textContent(), "—");
     assert.deepEqual(errors, []);
   });
 });
