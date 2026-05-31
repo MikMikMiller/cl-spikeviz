@@ -16,17 +16,31 @@ This v0.1 simulator preview is for reviewing stream handling, parser assumptions
 
 The captures below were recorded from the Chrome desktop browser using deterministic demo mode.
 
-| 2D dashboard GIF | 3D MEA GIF | Split view GIF |
-| --- | --- | --- |
-| ![Animated 2D dashboard browser demo](assets/chrome-dashboard-demo.gif) | ![Animated isometric 3D MEA browser demo](assets/chrome-3d-demo.gif) | ![Animated split-view browser demo](assets/chrome-split-demo.gif) |
+<table>
+  <tr>
+    <th>2D dashboard GIF</th>
+    <th>3D MEA GIF</th>
+    <th>Split view GIF</th>
+  </tr>
+  <tr>
+    <td><img src="assets/chrome-dashboard-demo.gif" width="100%" alt="Animated 2D dashboard browser demo"></td>
+    <td><img src="assets/chrome-3d-demo.gif" width="100%" alt="Animated isometric 3D MEA browser demo"></td>
+    <td><img src="assets/chrome-split-demo.gif" width="100%" alt="Animated split-view browser demo"></td>
+  </tr>
+</table>
 
-| 2D dashboard | 3D MEA view |
-| --- | --- |
-| ![Light theme 2D dashboard screenshot](assets/chrome-dashboard-demo.jpg) | ![Dark theme isometric 3D MEA screenshot](assets/chrome-3d-demo.jpg) |
-
-| Compact split view |
-| --- |
-| ![Dark compact split-view screenshot](assets/chrome-split-demo.jpg) |
+<table>
+  <tr>
+    <th>2D dashboard</th>
+    <th>3D MEA view</th>
+    <th>Split view</th>
+  </tr>
+  <tr>
+    <td><img src="assets/chrome-dashboard-demo.jpg" width="100%" alt="Light theme 2D dashboard screenshot"></td>
+    <td><img src="assets/chrome-3d-demo.jpg" width="100%" alt="Dark theme isometric 3D MEA screenshot"></td>
+    <td><img src="assets/chrome-split-demo.jpg" width="100%" alt="Dark compact split-view screenshot"></td>
+  </tr>
+</table>
 
 ## Reviewer Path
 
