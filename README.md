@@ -2,6 +2,8 @@
 
 [Open the live demo](https://mikmikmiller.github.io/cl-spikeviz/?demo=1)
 
+Independent builder project for [Cortical Labs](https://corticallabs.com) [`cl-sdk`](https://github.com/Cortical-Labs/cl-sdk) simulator streams; see the [public docs](https://docs.corticallabs.com). Not affiliated with Cortical Labs.
+
 `cl-spikeviz` is a standalone browser visualizer for Cortical Labs `cl-sdk` simulator streams and replayable JSON stream snapshots.
 
 It is intentionally small:
