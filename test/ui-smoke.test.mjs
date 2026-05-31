@@ -57,6 +57,22 @@ test("sample recording loads and replays through the browser UI", async () => {
   });
 });
 
+test("sample recording stays active long enough to review the electrode grid", async () => {
+  await withPage("/?demo=1&view=grid", async ({ page, errors }) => {
+    await page.locator("#sample-recording-btn").click();
+    await page.waitForFunction(() => document.querySelector("#m-mode")?.textContent === "recording");
+    await page.waitForTimeout(800);
+
+    assert.equal(await page.locator('button[data-view="grid"]').getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator("#status-text").textContent(), /replaying|recording paused/);
+    assert.doesNotMatch(await page.locator("#status-text").textContent(), /recording ended/);
+    assert.notEqual(await page.locator("#stats-text").textContent(), "0 spk · 0 stm");
+    assert.equal(await page.locator("#electrode-grid-canvas").isVisible(), true);
+    assert.equal(await hasHorizontalOverflow(page), false);
+    assert.deepEqual(errors, []);
+  });
+});
+
 test("recording reset after playback end replays events from the beginning", async () => {
   await withPage("/?demo=1", async ({ page, errors }) => {
     await page.locator("#sample-recording-btn").click();

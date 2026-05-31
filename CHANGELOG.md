@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-05-31 sample replay fix
+
+- Extended the committed sample recording preview from a 61 ms fixture burst to a five-second review window.
+- Added a grid replay regression test so **Load sample** does not immediately land on `recording ended`.
+- Documented the preview expansion flags for regenerating `assets/sample-recording.json`.
+
 ## 2026-05-31 release media refresh
 
 - Switched the default paper theme to a neutral lab-paper background so README media does not read as pink on GitHub.

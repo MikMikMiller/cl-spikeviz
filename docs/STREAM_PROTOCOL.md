@@ -236,7 +236,7 @@ Replay integration:
 Export workflows:
 
 ```bash
-python3 tools/export_recording.py --fixtures test/fixtures --out assets/sample-recording.json
+python3 tools/export_recording.py --fixtures test/fixtures --out assets/sample-recording.json --preview-duration-ms 5000 --preview-cycle-ms 500
 ```
 
 ```bash

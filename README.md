@@ -104,12 +104,12 @@ Public `cl-sdk` documentation describes enabling the simulator WebSocket server 
 
 Recording replay mode loads a compact `cl-spikeviz` snapshot JSON file in the browser. It does not require Python, the simulator, or hardware during playback. Use the **Load recording** button or drop a snapshot JSON file onto the app window.
 
-The committed sample is available at `assets/sample-recording.json`. In the app, **Load sample** switches from demo/live mode to replay and stops the previous source before playback begins. Replay uses the same raster, heatmap, waveform, 3D, reset, pause, and channel-selection paths as live data.
+The committed sample is available at `assets/sample-recording.json`. In the app, **Load sample** switches from demo/live mode to replay and stops the previous source before playback begins. The committed sample repeats captured fixture events over a five-second preview window so grid and 3D review stays visibly active. Replay uses the same raster, heatmap, waveform, 3D, reset, pause, and channel-selection paths as live data.
 
 Create a snapshot from an existing fixture capture:
 
 ```bash
-python3 tools/export_recording.py --fixtures test/fixtures --out assets/sample-recording.json
+python3 tools/export_recording.py --fixtures test/fixtures --out assets/sample-recording.json --preview-duration-ms 5000 --preview-cycle-ms 500
 ```
 
 Create a snapshot while capturing a live simulator stream:

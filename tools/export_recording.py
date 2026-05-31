@@ -20,11 +20,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Export a cl-spikeviz recording snapshot from captured fixtures.")
     parser.add_argument("--fixtures", type=Path, default=Path("test/fixtures"))
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--preview-duration-ms",
+        type=float,
+        default=0,
+        help="Repeat captured events until this duration for browser-preview sample recordings.",
+    )
+    parser.add_argument(
+        "--preview-cycle-ms",
+        type=float,
+        default=500,
+        help="Cycle interval used with --preview-duration-ms.",
+    )
     args = parser.parse_args()
 
     overview_records = read_json(args.fixtures / "overview.json")
     live_records = read_json(args.fixtures / "live_streaming.json")
     snapshot = build_snapshot_from_records(args.fixtures, overview_records, live_records)
+    if args.preview_duration_ms > 0:
+        snapshot = expand_preview_snapshot(snapshot, args.preview_duration_ms, args.preview_cycle_ms)
     write_snapshot(args.out, snapshot)
 
 
@@ -59,6 +73,37 @@ def build_snapshot_from_records(
         "duration_ms": duration_ms,
         "events": snapshot_events,
     }
+
+
+def expand_preview_snapshot(
+    snapshot: dict[str, Any],
+    target_duration_ms: float,
+    cycle_ms: float,
+) -> dict[str, Any]:
+    """Repeat a short fixture capture into a reviewable sample replay."""
+
+    events = snapshot["events"]
+    if not events or target_duration_ms <= snapshot["duration_ms"]:
+        return snapshot
+
+    base_duration = float(snapshot["duration_ms"])
+    cycle = max(float(cycle_ms), base_duration + 1)
+    expanded: list[dict[str, Any]] = []
+    offset = 0.0
+    while offset <= target_duration_ms:
+        for event in events:
+            t_ms = normalize_ms(float(event["t_ms"]) + offset)
+            if float(t_ms) > target_duration_ms:
+                continue
+            next_event = dict(event)
+            next_event["t_ms"] = t_ms
+            expanded.append(next_event)
+        offset += cycle
+
+    result = dict(snapshot)
+    result["duration_ms"] = normalize_ms(target_duration_ms)
+    result["events"] = expanded
+    return result
 
 
 def find_frames_per_second(live_records: list[dict[str, Any]]) -> int:
@@ -154,6 +199,11 @@ def to_snapshot_event(event: dict[str, Any], origin: int, fps: int) -> dict[str,
 def ms_value(frames: int, fps: int) -> int | float:
     value = round((frames * 1000) / fps, 3)
     return int(value) if float(value).is_integer() else value
+
+
+def normalize_ms(value: float) -> int | float:
+    rounded = round(value, 3)
+    return int(rounded) if rounded.is_integer() else rounded
 
 
 def channel_padding(count: int) -> int:
